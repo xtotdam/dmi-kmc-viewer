@@ -31,6 +31,10 @@ class _Parameters:
         'axes.formatter.useoffset': False,
     }
 
+
+    ### Viewer parameters
+    image_width=200
+
 Parameters = _Parameters()
 
 if __name__ == '__main__':

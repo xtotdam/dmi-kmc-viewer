@@ -1,0 +1,27 @@
+th {
+    background: #ddffdd;
+}
+
+td.axis_desc {
+    background: #FFE6BC
+}
+
+td, th {
+    padding: 5px;
+}
+
+table {
+    border-collapse: collapse;
+}
+
+table, th, td {
+    border: 1px solid black;
+}
+
+table.grid td {
+    border: 2px solid black;
+}
+
+td.invis {
+    border: 1px solid white;
+}

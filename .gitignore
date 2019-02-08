@@ -4,3 +4,7 @@ __pycache__/*
 
 *.json
 *.7z
+
+*.html
+!template.html
+!misc.html
