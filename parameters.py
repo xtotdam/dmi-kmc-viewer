@@ -33,7 +33,8 @@ class _Parameters:
 
 
     ### Viewer parameters
-    image_width=200
+    image_width = 200
+    template_type = 'phi+theta'
 
 Parameters = _Parameters()
 

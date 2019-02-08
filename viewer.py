@@ -6,6 +6,7 @@ from hashlib import md5
 import time
 
 from parameters import Parameters as P
+from imagetemplates import image_templates
 
 jsondata = json.load(open('metadata.json'))
 
@@ -126,12 +127,7 @@ for j in range(len(condition[yaxis])):
         table.append('<td>\n')
 
         for h in hashes[(i, j)]:
-            table.append('<div class="single_hash">\n')
-            img_filename = imagename_template.substitute(hash=h, type="phi")
-            table.append(f'<a href="{img_filename}"><img alt="{h}" src="{img_filename}" width={P.image_width}px /></a>\n')
-            img_filename = imagename_template.substitute(hash=h, type="theta")
-            table.append(f'<a href="{img_filename}"><img alt="{h}" src="{img_filename}" width={P.image_width}px /></a>\n')
-            table.append('</div>\n')
+            table.append(image_templates[P.template_type].substitute(imgpath=imgpath, hash=h))
 
         table.append('</td>\n')
     table.append('</tr>\n')
