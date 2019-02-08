@@ -11,17 +11,16 @@ from typing import List, Tuple
 import functools
 import os.path
 
-from parameters import *
+from parameters import Parameters as P
 
 np.set_printoptions(suppress=True)
-for k in matplotlib_params:
-    rcParams[k] = matplotlib_params[k]
+for k in P.matplotlib_params:
+    rcParams[k] = P.matplotlib_params[k]
 
 
-# @functools.lru_cache(maxsize=2**10)
-def extract_history(metadata:dict) -> Tuple[np.ndarray, np.ndarray]:
-    historylines = open(metadata['files']['history']).readlines()
-    offset_top, offset_btm = offsets[metadata['metadata']['fileformat']]
+def extract_history(jsondata:dict, metadata:dict) -> Tuple[np.ndarray, np.ndarray]:
+    historylines = open(jsondata['data_location'] / metadata['files']['history']).readlines()
+    offset_top, offset_btm = P.offsets[metadata['metadata']['fileformat']]
     energy_evolution = historylines[offset_top:-offset_btm]
     del historylines
 
@@ -41,19 +40,19 @@ def extract_history(metadata:dict) -> Tuple[np.ndarray, np.ndarray]:
 
 
 def check_image_exists(f):
-    def wrapper(md, fn):
-        ext = plot_format
+    def wrapper(jd:dict, md:dict, fn:str):
+        ext = P.plot_format
         ffn = '.'.join((fn, ext))
-        if os.path.exists(ffn):
+        if os.path.exists(jd['images_location'] / ffn):
             print(f'{ffn} already exists')
         else:
-            f(md, fn)
+            f(jd, md, fn)
     return wrapper
 
 
 @check_image_exists
-def plot_energy(metadata:dict, filename:str):
-    _, energies = extract_history(metadata)
+def plot_energy(jsondata:dict, metadata:dict, filename:str):
+    _, energies = extract_history(jsondata, metadata)
     del _
 
     fig = plt.figure(figsize=(15, 4))
@@ -67,15 +66,15 @@ def plot_energy(metadata:dict, filename:str):
     ax.set_ylim(energies[-1] * 1.02, -energies[-1] * 0.02)
     # ax.set_title(f'At step {metadata["metadata"]["framefreq"] * ...}')
 
-    ext = plot_format
-    fig.savefig('.'.join((filename, ext)), format=ext, bbox_inches='tight')
+    ext = P.plot_format
+    fig.savefig(jsondata['images_location'] / '.'.join((filename, ext)), format=ext, bbox_inches='tight')
     # metadata adding is possible
     plt.close()
 
 
 @check_image_exists
-def plot_steps(metadata:dict, filename:str):
-    hist, energies = extract_history(metadata)
+def plot_steps(jsondata:dict, metadata:dict, filename:str):
+    hist, energies = extract_history(jsondata, metadata)
 
     fig = plt.figure(figsize=(15, 4))
     ax = fig.gca()
@@ -96,15 +95,15 @@ def plot_steps(metadata:dict, filename:str):
     labels = [int(x) * n for x in labels]
     ax.set_xticklabels(labels)
 
-    ext = plot_format
-    fig.savefig('.'.join((filename, ext)), format=ext, bbox_inches='tight')
+    ext = P.plot_format
+    fig.savefig(jsondata['images_location'] / '.'.join((filename, ext)), format=ext, bbox_inches='tight')
     # metadata adding is possible
     plt.close()
 
 
 @check_image_exists
-def plot_phi(metadata:dict, filename:str):
-    x,y,z,u,v,w = np.loadtxt(metadata['files']['hexgrid'], skiprows=1, delimiter=',').T
+def plot_phi(jsondata:dict, metadata:dict, filename:str):
+    x,y,z,u,v,w = np.loadtxt(jsondata['data_location'] / metadata['files']['hexgrid'], skiprows=1, delimiter=',').T
     colorsuv = np.arctan2(u, v) # phi = [-pi, pi]
     colorsuv = (colorsuv + np.pi) / (2 * np.pi) # [0, 1]
 
@@ -115,7 +114,7 @@ def plot_phi(metadata:dict, filename:str):
     for i in range(x.shape[0]):
         patches.append(mpatches.RegularPolygon((x[i], y[i]), 6, 0.58))
 
-    collection_spins = PatchCollection(patches, facecolors=plt.get_cmap(phi_colormap)(colorsuv))
+    collection_spins = PatchCollection(patches, facecolors=plt.get_cmap(P.phi_colormap)(colorsuv))
     ax.add_collection(collection_spins)
 
     xmin, xmax, ymin, ymax = x.min(), x.max(), y.min(), y.max()
@@ -129,15 +128,15 @@ def plot_phi(metadata:dict, filename:str):
     ax.set_ylabel('Y', rotation=0, ha='right', fontsize=20)
     ax.set_xlabel('X', fontsize=20)
 
-    ext = plot_format
-    fig.savefig('.'.join((filename, ext)), format=ext, bbox_inches='tight')
+    ext = P.plot_format
+    fig.savefig(jsondata['images_location'] / '.'.join((filename, ext)), format=ext, bbox_inches='tight')
     # metadata adding is possible
     plt.close()
 
 
 @check_image_exists
-def plot_theta(metadata:dict, filename:str):
-    x,y,z,u,v,w = np.loadtxt(metadata['files']['hexgrid'], skiprows=1, delimiter=',').T
+def plot_theta(jsondata:dict, metadata:dict, filename:str):
+    x,y,z,u,v,w = np.loadtxt(jsondata['data_location'] / metadata['files']['hexgrid'], skiprows=1, delimiter=',').T
     colors = np.arccos(w / np.sqrt(u**2 + v**2 + w**2)) # theta = [0, pi]
     colors /= np.pi # [0, 1]
 
@@ -148,7 +147,7 @@ def plot_theta(metadata:dict, filename:str):
     for i in range(x.shape[0]):
         patches.append(mpatches.RegularPolygon((x[i], y[i]), 6, 0.58))
 
-    collection_zdir = PatchCollection(patches, facecolors=plt.get_cmap(theta_colormap)(colors))
+    collection_zdir = PatchCollection(patches, facecolors=plt.get_cmap(P.theta_colormap)(colors))
     ax.add_collection(collection_zdir)
 
     xmin, xmax, ymin, ymax = x.min(), x.max(), y.min(), y.max()
@@ -162,15 +161,15 @@ def plot_theta(metadata:dict, filename:str):
     ax.set_ylabel('Y', rotation=0, ha='right', fontsize=20)
     ax.set_xlabel('X', fontsize=20)
 
-    ext = plot_format
-    fig.savefig('.'.join((filename, ext)), format=ext, bbox_inches='tight')
+    ext = P.plot_format
+    fig.savefig(jsondata['images_location'] / '.'.join((filename, ext)), format=ext, bbox_inches='tight')
     # metadata adding is possible
     plt.close()
 
 
 @check_image_exists
-def plot_phi3x3(metadata:dict, filename:str):
-    x,y,z,u,v,w = np.loadtxt(metadata['files']['hexgrid'], skiprows=1, delimiter=',').T
+def plot_phi3x3(jsondata:dict, metadata:dict, filename:str):
+    x,y,z,u,v,w = np.loadtxt(jsondata['data_location'] / metadata['files']['hexgrid'], skiprows=1, delimiter=',').T
     colorsuv = np.arctan2(u, v) # phi = [-pi, pi]
     colorsuv = (colorsuv + np.pi) / (2 * np.pi) # [0, 1]
 
@@ -184,7 +183,7 @@ def plot_phi3x3(metadata:dict, filename:str):
             for i in range(x.shape[0]):
                 patches.append(mpatches.RegularPolygon((x[i] + dx, y[i] + dy), 6, 0.58))
 
-    collection_spinsp = PatchCollection(patches, facecolors=plt.get_cmap(phi_colormap)(colorsuv))
+    collection_spinsp = PatchCollection(patches, facecolors=plt.get_cmap(P.phi_colormap)(colorsuv))
 
     ax.add_collection(collection_spinsp)
 
@@ -203,15 +202,15 @@ def plot_phi3x3(metadata:dict, filename:str):
     ax.set_ylabel('Y', rotation=0, ha='right', fontsize=20)
     ax.set_xlabel('X', fontsize=20)
 
-    ext = plot_format
-    fig.savefig('.'.join((filename, ext)), format=ext, bbox_inches='tight')
+    ext = P.plot_format
+    fig.savefig(jsondata['images_location'] / '.'.join((filename, ext)), format=ext, bbox_inches='tight')
     # metadata adding is possible
     plt.close()
 
 
 @check_image_exists
-def plot_theta3x3(metadata:dict, filename:str):
-    x,y,z,u,v,w = np.loadtxt(metadata['files']['hexgrid'], skiprows=1, delimiter=',').T
+def plot_theta3x3(jsondata:dict, metadata:dict, filename:str):
+    x,y,z,u,v,w = np.loadtxt(jsondata['data_location'] / metadata['files']['hexgrid'], skiprows=1, delimiter=',').T
     colors = np.arccos(w / np.sqrt(u**2 + v**2 + w**2)) # theta = [0, pi]
     colors /= np.pi # [0, 1]
 
@@ -225,7 +224,7 @@ def plot_theta3x3(metadata:dict, filename:str):
             for i in range(x.shape[0]):
                 patches.append(mpatches.RegularPolygon((x[i] + dx, y[i] + dy), 6, 0.58))
 
-    collection_zdirp = PatchCollection(patches, facecolors=plt.get_cmap(theta_colormap)(colors))
+    collection_zdirp = PatchCollection(patches, facecolors=plt.get_cmap(P.theta_colormap)(colors))
 
     ax.add_collection(collection_zdirp)
 
@@ -244,8 +243,8 @@ def plot_theta3x3(metadata:dict, filename:str):
     ax.set_ylabel('Y', rotation=0, ha='right', fontsize=20)
     ax.set_xlabel('X', fontsize=20)
 
-    ext = plot_format
-    fig.savefig('.'.join((filename, ext)), format=ext, bbox_inches='tight')
+    ext = P.plot_format
+    fig.savefig(jsondata['images_location'] / '.'.join((filename, ext)), format=ext, bbox_inches='tight')
     # metadata adding is possible
     plt.close()
 
@@ -258,7 +257,7 @@ def create_phi_colorbar(filename:str):
     ax = fig.gca()
 
     ticks = np.linspace(0, 1, 8+1) * 256
-    ax.imshow(gradient, aspect='auto', cmap=plt.get_cmap(phi_colormap))
+    ax.imshow(gradient, aspect='auto', cmap=plt.get_cmap(P.phi_colormap))
     ax.set_ylabel(r'$\varphi$', fontsize=20, rotation=0, ha='right', va='center')
     ax.set_xticks(ticks)
     ax.set_xticklabels([
@@ -279,7 +278,7 @@ def create_theta_colorbar(filename:str):
     ax = fig.gca()
 
     ticks = np.linspace(0, 1, 4+1) * 256
-    ax.imshow(gradient, aspect='auto', cmap=plt.get_cmap(theta_colormap))
+    ax.imshow(gradient, aspect='auto', cmap=plt.get_cmap(P.theta_colormap))
     ax.set_ylabel(r'$\theta$', fontsize=20, rotation=0, ha='right', va='center')
     ax.set_xticks(ticks)
     ax.set_xticklabels([

@@ -1,7 +1,7 @@
 from datetime import timedelta
 from pathlib import Path
 
-from parameters import *
+from parameters import Parameters as P
 
 
 def describe(histfile):
@@ -10,14 +10,13 @@ def describe(histfile):
     if fileformatline.startswith('FILEFORMAT'):
         try:
             ff = fileformatline.split()[-1]
-            offset_top, offset_btm = offsets[ff]
+            offset_top, offset_btm = P.offsets[ff]
         except KeyError:
-            raise KeyError(f'{histfile}: Unknown fileformat: {ff}. Accepted are {list(offsets.keys())}')
+            raise KeyError(f'{histfile}: Unknown fileformat: {ff}. Accepted are {list(P.offsets.keys())}')
     else:
         raise Exception(f'{histfile}: Fileformat not found on 2nd line: {fileformatline}')
 
     paramslines = historylines[:offset_top] + historylines[-offset_btm:]
-    # energy_evolution = historylines[offset_top:-offset_btm]
     del historylines
 
     params = dict()
@@ -28,7 +27,6 @@ def describe(histfile):
     params['FILE'] = str(histfile)
 
     try:
-        # params['HEXGRID'] = str(list(hexgrid_loc.glob(f'hexgrid2C_*{params["SEED"]}.*.csv'))[0])
         l = list(Path(histfile).parent.glob(f'hexgrid2C_*{params["SEED"]}.*.csv'))
         if len(l) > 1:
             print(f'{histfile}: Several hexgrids found: {list(map(str, l))}')
@@ -50,18 +48,8 @@ def describe(histfile):
         },
 
         'files': {
-            'history': params['FILE'],
-            'hexgrid': params['HEXGRID']
-        },
-
-        'plots': {
-            'energy': None,
-            'steps': None,
-            'phi': None,
-            'phi3x3': None,
-            'theta': None,
-            'theta3x3': None,
-            # 'movements'
+            'history': Path(params['FILE']).name,
+            'hexgrid': Path(params['HEXGRID']).name
         },
 
         'cell': list(map(int, params['CELL'].split())),
@@ -78,7 +66,6 @@ def describe(histfile):
 
     for i in range(8):
         metadata['parameters'][f'J{i+1}'] = metadata['parameters']['J'][i]
-
     del metadata['parameters']['J']
 
     return metadata
