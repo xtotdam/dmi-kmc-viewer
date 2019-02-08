@@ -60,7 +60,7 @@ def describe(histfile):
             'J': list(map(float, params['J_EXC'].split())),
             'K4': float(params['K4_4SPIN']),
             'K': float(params['K_MGANIS']),
-            'T': 0 if params['FILEFORMAT']=='V001' else params['TEMP']
+            'T': 0.0 if params['FILEFORMAT']=='V001' else float(params['TEMP'])
         },
     }
 
