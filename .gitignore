@@ -8,3 +8,5 @@ __pycache__/*
 *.html
 !template.html
 !misc.html
+
+*_test.py

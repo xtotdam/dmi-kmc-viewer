@@ -78,7 +78,8 @@ for metadata in jsondata['data']:
 for k in hashes:
     hashes[k] = sorted(hashes[k])
 
-
+# hashes dict is like {(i, j): [hashes], ...}
+# it is everything we need to build a big html table
 
 
 description = f'''\
