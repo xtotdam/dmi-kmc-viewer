@@ -1,10 +1,10 @@
 from tkinter import *
-from tkinter import ttk
+from tkinter import ttk, simpledialog
 import tkinter as tk
 from tkinter.filedialog import askopenfilename
 import tkinter.scrolledtext as tkst
 
-from easygui import diropenbox
+from easygui import diropenbox, codebox
 
 import json
 import os
@@ -13,6 +13,7 @@ from hashlib import md5
 import time
 import webbrowser
 from pathlib import Path
+import traceback
 
 from parameters import Parameters as P
 from reportcreator import create_report
@@ -31,6 +32,26 @@ secstarts = {secnames[i] : cumul_sl[i] for i in range(len(seclengths))}
 root = Tk()
 root.resizable(False, False)
 root.title('dmi-kmc Viewer')
+
+class TextDialog(simpledialog.Dialog):
+    # https://stackoverflow.com/questions/35923235/is-there-a-message-box-which-displays-copy-able-text-in-python-2-7
+    def __init__(self, parent, title=None, text=None):
+        self.data = text
+        simpledialog.Dialog.__init__(self, parent, title=title)
+
+    def body(self, parent):
+        self.geometry("1200x600")
+        self.text = tk.Text(self, width=40, height=4)
+        self.text.pack(fill="both", expand=True)
+        self.text.insert("1.0", self.data)
+        return self.text
+
+def report_callback_exception(*args):
+    err = traceback.format_exception(*args)
+    print(err)
+    TextDialog(root, title="Exception caught", text=err)
+
+root.report_callback_exception = report_callback_exception
 
 # c = ttk.Frame(root, padding=(5, 5, 12, 0))
 # c.grid(column=0, row=0, sticky=(N,W,E,S))
@@ -176,8 +197,8 @@ def on_xychosen():
             fixedvars['optionmenus'][i]['menu'].delete(0, END)
         return None
 
-    textarea.insert(END, 'X : ' + xaxis + '\n')
-    textarea.insert(END, 'Y : ' + yaxis + '\n')
+    textarea.insert(END, f'X : {xaxis} = {sorted(list(map(float, jsondata["tunables"][xaxis].keys())))}\n')
+    textarea.insert(END, f'Y : {yaxis} = {sorted(list(map(float, jsondata["tunables"][yaxis].keys())))}\n')
     textarea.insert(END, '* Freeze other variables\n')
 
     others = {x : None for x in jsondata['tunables'].keys() if x not in (xaxis, yaxis)}
