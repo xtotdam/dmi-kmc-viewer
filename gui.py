@@ -29,9 +29,21 @@ seclengths = [5, 3, parameterscount-2+6, 7]
 cumul_sl = [sum(seclengths[:i]) for i in range(len(seclengths))]
 secstarts = {secnames[i] : cumul_sl[i] for i in range(len(seclengths))}
 
-root = Tk()
-root.resizable(False, False)
-root.title('dmi-kmc Viewer')
+
+class StdoutRedirector(object):
+    # https://stackoverflow.com/questions/18517084/how-to-redirect-stdout-to-a-tkinter-text-widget
+    def __init__(self, text_widget):
+        self.text_space = text_widget
+
+    def write(self, string):
+        self.text_space.insert(END, string)
+        self.text_space.see(END)
+
+    def flush(self):
+        pass
+
+def debugprint(s):
+    print(s, file=sys.__stdout__)
 
 class TextDialog(simpledialog.Dialog):
     # https://stackoverflow.com/questions/35923235/is-there-a-message-box-which-displays-copy-able-text-in-python-2-7
@@ -46,11 +58,16 @@ class TextDialog(simpledialog.Dialog):
         self.text.insert("1.0", self.data)
         return self.text
 
+
 def report_callback_exception(*args):
     err = traceback.format_exception(*args)
     print(err)
     TextDialog(root, title="Exception caught", text=err)
 
+
+root = Tk()
+root.resizable(False, False)
+root.title('dmi-kmc Viewer')
 root.report_callback_exception = report_callback_exception
 
 # c = ttk.Frame(root, padding=(5, 5, 12, 0))
@@ -58,19 +75,23 @@ root.report_callback_exception = report_callback_exception
 # root.grid_columnconfigure(0, weight=1)
 # root.grid_rowconfigure(0,weight=1)
 
+################################
 # Textarea section
 
 textarea = tkst.ScrolledText(root, width=60)
 textarea.grid(column=3, row=0, rowspan=sum(seclengths), padx=3, pady=3, sticky=(N,S,E))
-textarea.insert(END, '*** dmi-kmc Viewer ***\n')
-textarea.insert(END, '* Choose metadata.json\n')
+sys.stdout = StdoutRedirector(textarea)
+# sys.stderr = StdoutRedirector(textarea)
 
+print('*** dmi-kmc Viewer ***')
+print('* Choose metadata.json')
+
+################################
 # Metadata section
 
 tk.Label(root, text='metadata.json location:').grid(column=0, row=secstarts['md'], columnspan=2)
 
 metadatalocvar = StringVar(root)
-# shows metadata file location
 tk.Label(root, textvariable=metadatalocvar, relief=GROOVE).grid(column=0, row=secstarts['md'] + 1, columnspan=3)
 
 jsondata, possiblexy = dict(), list()
@@ -80,8 +101,10 @@ def OpenFile():
         filetypes =(("JSON", "*.json"),("All Files","*.*")),
         title = "Choose a file"
         )
+    if name=='' or name is None:
+        return
 
-    textarea.insert(END, f'Metadata file: {Path(name)}\n')
+    print(f'Metadata file: {Path(name)}')
 
     global jsondata, possiblexy
     try:
@@ -91,35 +114,31 @@ def OpenFile():
             jsondata["data_location"] = Path(jsondata["data_location"]).resolve()
             jsondata["images_location"] = Path(jsondata["images_location"]).resolve()
 
-            textarea.insert(END, 'Metadata loaded\n')
-            textarea.insert(END, f'{len(jsondata["data"])} files described inside\n')
-            textarea.insert(END, f'Data dir: {jsondata["data_location"]}\n')
-            textarea.insert(END, f'Images dir: {jsondata["images_location"]}\n')
-            textarea.insert(END, '* Choose XY axis\n')
+            print('Metadata loaded')
+            print(f'{len(jsondata["data"])} files described inside')
+            print(f'Data dir: {jsondata["data_location"]}')
+            print(f'Images dir: {jsondata["images_location"]}')
+            print('* Choose XY axis')
             metadatalocvar.set(str(Path(name)))
             imageslocvar.set(jsondata['images_location'])
     except Exception as e:
-        print("No file exists")
-        textarea.insert(END, str(e) + '\n')
-        textarea.insert(END, '*** Error while opening file:' + name + '\n')
+        print(e)
+        print(f'*** Error while opening file: {name}')
         metadatalocvar.set('Error!')
         # xyokbutton.config(state="disabled")
         return
-    finally:
-        textarea.see(END)
 
     il = Path(jsondata['images_location'])
     if not il.exists() or not il.is_dir():
-        textarea.insert(END, 'Images location doesn\'t exist\n')
-        textarea.insert(END, 'Choosing images directory may be necessary\n')
+        print('Images location doesn\'t exist')
+        print('Choosing images directory may be necessary')
     else:
-        textarea.insert(END, 'Images location directory exists\n')
+        print('Images location directory exists')
         imagescount = len(list(il.glob(f'*.{P.plot_format}')))
-        textarea.insert(END, f'{imagescount} images found inside\n')
+        print(f'{imagescount} images found inside')
         if not imagescount == len(jsondata['data']) * len(jsondata['plot_types']) + 2:
-            textarea.insert(END, 'Some images may be missing\n')
-            textarea.insert(END, 'Choosing images directory may be necessary\n')
-    textarea.see(END)
+            print('Some images may be missing')
+            print('Choosing images directory may be necessary')
 
     xyokbutton.config(state="normal")
 
@@ -146,21 +165,21 @@ def FindImagesFolder():
     if name is None:
         return
     if 'images_location' not in jsondata.keys():
-        textarea.insert(END, 'Please open metadata file first\n')
+        print('Please open metadata file first')
         textarea.see(END)
         return
 
     name = Path(name).resolve()
-    textarea.insert(END, f'{name}\n')
+    print(f'{name}')
 
     jsondata['images_location'] = name
     imageslocvar.set(str(name))
 
     imagescount = len(list(name.glob(f'*.{P.plot_format}')))
-    textarea.insert(END, f'{imagescount} images found inside\n')
+    print(f'{imagescount} images found inside')
     if not imagescount == len(jsondata['data']) * len(jsondata['plot_types']) + 2:
-        textarea.insert(END, 'Some images may be missing\n')
-        textarea.insert(END, 'Choosing images directory may be necessary\n')
+        print('Some images may be missing')
+        print('Choosing images directory may be necessary')
     textarea.see(END)
 
 ttk.Button(root, text='Choose', command=FindImagesFolder).grid(column=2, row=secstarts['md'] + 2)
@@ -170,6 +189,7 @@ tk.Label(root, textvariable=imageslocvar, relief=GROOVE).grid(column=0, columnsp
 
 ttk.Separator(root).grid(column=0, row=secstarts['md'] + 4, columnspan=3, sticky=(E,W))
 
+################################
 # XY section
 
 tk.Label(root, text='X axis').grid(column=0, row=secstarts['xy'], ipadx=10)
@@ -187,7 +207,7 @@ ychooser.grid(column=1, row=secstarts['xy'] + 1)
 def on_xychosen():
     xaxis, yaxis = xvar.get(), yvar.get()
     if xaxis == yaxis:
-        textarea.insert(END, '*** X and Y must be different!\n')
+        print('*** X and Y must be different!')
         textarea.see(END)
         fixedvarsokbutton.config(state="disabled")
         for i in range(fixedvars['count']):
@@ -197,14 +217,14 @@ def on_xychosen():
             fixedvars['optionmenus'][i]['menu'].delete(0, END)
         return None
 
-    textarea.insert(END, f'X : {xaxis} = {sorted(list(map(float, jsondata["tunables"][xaxis].keys())))}\n')
-    textarea.insert(END, f'Y : {yaxis} = {sorted(list(map(float, jsondata["tunables"][yaxis].keys())))}\n')
-    textarea.insert(END, '* Freeze other variables\n')
+    print(f'X : {xaxis} = {sorted(list(map(float, jsondata["tunables"][xaxis].keys())))}')
+    print(f'Y : {yaxis} = {sorted(list(map(float, jsondata["tunables"][yaxis].keys())))}')
+    print('* Freeze other variables')
 
     others = {x : None for x in jsondata['tunables'].keys() if x not in (xaxis, yaxis)}
     for o in others:
         others[o] = list(jsondata['tunables'][o].keys())
-        textarea.insert(END, f'{o} : {" ".join(others[o])}\n')
+        print(f'{o} : {" ".join(others[o])}')
     textarea.see(END)
 
     pprint(others)
@@ -227,11 +247,13 @@ def on_xychosen():
         for v in others[o]:
             fixedvars['optionmenus'][i]['menu'].add_command(label=f'{v} : [{jsondata["tunables"][o][v]}]', command=tk._setit(fixedvars['omvars'][i], v))
 
+
 xyokbutton = ttk.Button(root, text='Ok', command=on_xychosen, state=DISABLED)
 xyokbutton.grid(column=2, row=secstarts['xy'] + 1)
 
 ttk.Separator(root).grid(column=0, row=secstarts['xy'] + 2, columnspan=3, sticky=(E,W))
 
+######################################
 # Fixed vars section
 
 fixedvars = {
@@ -261,7 +283,6 @@ for i in range(fixedvars['count']):
     fixedvars['numlabelvars'].append(nlv)
 
 
-
 def on_fixedvarschosen():
     timehash = md5()
     timehash.update(str(time.time()).encode('utf-8'))
@@ -271,7 +292,6 @@ def on_fixedvarschosen():
     fv = ''.join(f'{k}={fixedvars["omvars"][fixedvars["keys"].index(k)].get()}_' for k in others)
 
     filename = f'{xaxis}vs{yaxis}_{fv}{timehash}.html'
-    # filename = 'test.html'
     htmlnamevar.set(filename)
 
     passed = list()
@@ -313,7 +333,7 @@ def on_fixedvarschosen():
     }
 
     create_report(hashes, jsondata, dataforreport)
-    textarea.insert(END, f'Report created: {filename}\n')
+    print(f'Report created: {filename}')
     textarea.see(END)
     if openinbrowser.get():
         webbrowser.open(filename)
@@ -330,6 +350,7 @@ tk.Label(root, textvariable=htmlnamevar, relief=GROOVE).grid(column=0, row=secst
 ttk.Separator(root, orient='horizontal').grid(column=0, row=secstarts['ds']-2, columnspan=3, sticky=(E,W))
 ttk.Separator(root, orient='horizontal').grid(column=0, row=secstarts['ds']-1, columnspan=3, sticky=(E,W))
 
+################################
 # Describer section
 
 tk.Label(root, text='Describer (WIP)', relief=RAISED).grid(column=0, row=secstarts['ds'], columnspan=3)
