@@ -13,6 +13,18 @@ class _Parameters:
 
 
     ### Plotter parameters
+    plot_types_shorts = {
+        "energy": 'e',
+        "steps": 's',
+        "phi": '&varphi;',
+        "theta": '&theta;',
+        "phi3x3": '&varphi;3',
+        "theta3x3": '&theta;3',
+        # first movements
+
+    }
+    plot_types = list(plot_types_shorts.keys())
+
     phi_colormap = 'hsv'
     theta_colormap = 'PRGn'
 
