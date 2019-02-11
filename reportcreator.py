@@ -6,14 +6,7 @@ from string import Template
 from parameters import Parameters as P
 from imagetemplates import image_templates
 
-shorts = {
-    "energy": 'e',
-    "steps": 's',
-    "phi": '&varphi;',
-    "theta": '&theta;',
-    "phi3x3": '&varphi;3',
-    "theta3x3": '&theta;3'
-}
+shorts = P.plot_types_shorts
 
 
 def create_report(hashes:dict, jsondata:dict, dataforreport:dict):
@@ -49,7 +42,6 @@ def create_report(hashes:dict, jsondata:dict, dataforreport:dict):
     </table>'''
 
     imgpath = Path(jsondata['images_location']).as_uri()
-    # imgpath = Path('E:\\Cloud Mail.Ru\\Данные расчетов\\dmi-kmc\\14-12-18\\images').as_uri()
     imagename_template = Template(f'{imgpath}/${{hash}}_${{type}}.{P.plot_format}')
 
     for i in range(len(condition[xaxis])):

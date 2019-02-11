@@ -14,9 +14,11 @@ import time
 import webbrowser
 from pathlib import Path
 import traceback
+from functools import partial
 
 from parameters import Parameters as P
 from reportcreator import create_report
+from describer import create_metadata
 
 parameterscount = 13
 secnames = [
@@ -61,7 +63,8 @@ class TextDialog(simpledialog.Dialog):
 
 def report_callback_exception(*args):
     err = traceback.format_exception(*args)
-    print(err)
+    err = ''.join(err)
+    debugprint(err)
     TextDialog(root, title="Exception caught", text=err)
 
 
@@ -355,22 +358,49 @@ ttk.Separator(root, orient='horizontal').grid(column=0, row=secstarts['ds']-1, c
 
 tk.Label(root, text='Describer (WIP)', relief=RAISED).grid(column=0, row=secstarts['ds'], columnspan=3)
 
-tk.Label(root, text='Data path (choose any file inside):').grid(column=0, columnspan=2, row=secstarts['ds'] + 1, sticky=(W,))
-ttk.Button(root, text='Choose').grid(column=2, row=secstarts['ds'] + 1)
-describedatapathvar = StringVar(root)
+def set_rel_location(var=None):
+    name = diropenbox(default=os.getcwd())
+    if name is None:
+        return
+    name = Path(name).resolve()
+    try:
+        name = name.relative_to(Path.cwd())
+    except ValueError:
+        pass
+    var.set(name)
+
+describedatapathvar = StringVar(root, 'data')
+describeimagespathvar = StringVar(root, 'images')
+
+set_datalocation = partial(set_rel_location, var=describedatapathvar)
+set_imageslocation = partial(set_rel_location, var=describeimagespathvar)
+
+tk.Label(root, text='Data path:').grid(column=0, columnspan=2, row=secstarts['ds'] + 1, sticky=(W,))
+ttk.Button(root, text='Choose', command=set_datalocation).grid(column=2, row=secstarts['ds'] + 1)
+
 tk.Label(root, textvariable=describedatapathvar, relief=GROOVE).grid(column=0, columnspan=3, row=secstarts['ds'] + 2)
 
-tk.Label(root, text='Images path (choose any file inside):').grid(column=0, columnspan=2, row=secstarts['ds'] + 3, sticky=(W,))
-ttk.Button(root, text='Choose').grid(column=2, row=secstarts['ds'] + 3)
-describeimagespathvar = StringVar(root)
+tk.Label(root, text='Images path:').grid(column=0, columnspan=2, row=secstarts['ds'] + 3, sticky=(W,))
+ttk.Button(root, text='Choose', command=set_imageslocation).grid(column=2, row=secstarts['ds'] + 3)
+
 tk.Label(root, textvariable=describeimagespathvar, relief=GROOVE).grid(column=0, columnspan=3, row=secstarts['ds'] + 4)
 
 plotvar = BooleanVar()
 tk.Checkbutton(root, text='plot', variable=plotvar).grid(column=0, row=secstarts['ds'] + 5)
 
-ttk.Button(root, text='Describe').grid(column=2, row=secstarts['ds'] + 5)
+def do_describe():
+    # progressvar.set(progressvar.get() + 10)
+    if describedatapathvar.get()=='' or describeimagespathvar.get()=='':
+        print('Both data and images\' locations must be specified!')
+        return
+    create_metadata(describedatapathvar.get(), describeimagespathvar.get(), do_plot=plotvar.get(), pbardict=pbardict)
 
-describeprogressbar = ttk.Progressbar(root)
+ttk.Button(root, text='Describe', command=do_describe).grid(column=2, row=secstarts['ds'] + 5)
+
+progressvar = IntVar()
+progressmax = IntVar()
+describeprogressbar = ttk.Progressbar(root, variable=progressvar, maximum=progressmax.get(), mode="determinate")
 describeprogressbar.grid(column=0, columnspan=3, row=secstarts['ds'] + 6, sticky=(E,W))
+pbardict = {'var': progressvar, 'max': progressmax}
 
 root.mainloop()

@@ -19,7 +19,11 @@ for k in P.matplotlib_params:
 
 
 def extract_history(jsondata:dict, metadata:dict) -> Tuple[np.ndarray, np.ndarray]:
-    historylines = open(jsondata['data_location'] / metadata['files']['history']).readlines()
+    historylines = None
+    with open(jsondata['data_location'] / metadata['files']['history']) as f:
+        historylines = f.readlines()
+
+    # historylines = open(jsondata['data_location'] / metadata['files']['history']).readlines()
     offset_top, offset_btm = P.offsets[metadata['metadata']['fileformat']]
     energy_evolution = historylines[offset_top:-offset_btm]
     del historylines

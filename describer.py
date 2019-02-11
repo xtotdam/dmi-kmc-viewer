@@ -87,17 +87,30 @@ def describe(histfile):
     return metadata
 
 
-def create_metadata(data_loc:Path, images_loc:Path, metadatafilename='metadata.json', do_plot=False):
+def create_metadata(data_loc:Path, images_loc:Path, metadatafilename='metadata.json', do_plot=False, pbardict=None):
     jsondata = dict()
-    jsondata['data_location'] = data_loc
-    jsondata['images_location'] = images_loc
+    jsondata['data_location'] = Path(data_loc)
+    jsondata['images_location'] = Path(images_loc)
     jsondata['plot_types'] = P.plot_types
     jsondata['plot_format'] = P.plot_format
+
+    jsondata['images_location'].mkdir(exist_ok=True)
 
     possible_values = dict()
     metadata_list = list()
 
-    for histfile in tqdm(list(jsondata['data_location'].glob('history*.txt')), ascii=True):
+    if pbardict is None:
+        iterable = tqdm(list(jsondata['data_location'].glob('history*.txt')), ascii=True)
+    else:
+        iterable = list(jsondata['data_location'].glob('history*.txt'))
+
+        print(f'{len(list(iterable))} files to describe')
+
+        pbardict['var'].set(0)
+        pbardict['max'].set(len(list(iterable)))
+
+    for histfile in iterable:
+        metadata = dict()
         try:
             metadata = describe(histfile)
         except Exception as e:
@@ -116,7 +129,7 @@ def create_metadata(data_loc:Path, images_loc:Path, metadatafilename='metadata.j
             else:
                 possible_values[key] = {metadata['parameters'][key] : 1}
 
-        if args.plot:
+        if do_plot:
             # TODO parallel it
             for typ in jsondata['plot_types']:
                 plotfunc = eval('plot_' + typ)
@@ -126,29 +139,34 @@ def create_metadata(data_loc:Path, images_loc:Path, metadatafilename='metadata.j
                 # metadata['plots'][typ] = '.'.join((plotfn, plot_format))
 
         metadata_list.append(metadata)
-
         # pprint(metadata)
+
+        if pbardict is not None:
+            pbardict['var'].set(pbardict['var'].get() + 1)
+
+    print('All files were described')
 
     cb = jsondata['images_location'] / P.phi_colorbar_name
     if not os.path.exists(cb):
-        print('Recreate phi colorbar')
+        print('Recreating phi colorbar')
         create_phi_colorbar(str(cb.resolve()))
 
     cb = jsondata['images_location'] / P.theta_colorbar_name
     if not os.path.exists(cb):
-        print('Recreate theta colorbar')
+        print('Recreating theta colorbar')
         create_theta_colorbar(str(cb.resolve()))
 
 
     jsondata['data_location']   = str(jsondata['data_location'])
     jsondata['images_location'] = str(jsondata['images_location'])
     jsondata['tunables'] = {key: possible_values[key] for key in metadata['parameters']}
-
     jsondata['data'] = metadata_list
-
 
     json.dump(jsondata, open('metadata.json', 'w'), indent=4, sort_keys=True)
     # print(json.dumps(jsondata, indent=4, sort_keys=True))
+
+    print('metadata.json was written to disc')
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Describe dmi-kmc calculations results and optionally plot them')
