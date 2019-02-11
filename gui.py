@@ -1,8 +1,10 @@
 from tkinter import *
 from tkinter import ttk
 import tkinter as tk
-from tkinter.filedialog import askopenfilename, askdirectory
+from tkinter.filedialog import askopenfilename
 import tkinter.scrolledtext as tkst
+
+from easygui import diropenbox
 
 import json
 import os
@@ -22,11 +24,13 @@ secnames = [
     'fv', # fixed variables
     'ds'  # describer
     ]
-seclengths = [5, 3, 13-2+4, 5]
+seclengths = [5, 3, parameterscount-2+6, 7]
 cumul_sl = [sum(seclengths[:i]) for i in range(len(seclengths))]
 secstarts = {secnames[i] : cumul_sl[i] for i in range(len(seclengths))}
 
 root = Tk()
+root.resizable(False, False)
+root.title('dmi-kmc Viewer')
 
 # c = ttk.Frame(root, padding=(5, 5, 12, 0))
 # c.grid(column=0, row=0, sticky=(N,W,E,S))
@@ -42,13 +46,11 @@ textarea.insert(END, '* Choose metadata.json\n')
 
 # Metadata section
 
-metadatalabel = tk.Label(root, text='metadata.json location:')
-metadatalabel.grid(column=0, row=secstarts['md'], columnspan=2)
+tk.Label(root, text='metadata.json location:').grid(column=0, row=secstarts['md'], columnspan=2)
 
 metadatalocvar = StringVar(root)
-metadatalocvar.set('')
-metadatalocationlabel = tk.Label(root, textvariable=metadatalocvar, relief=GROOVE)
-metadatalocationlabel.grid(column=0, row=secstarts['md'] + 1, columnspan=3)
+# shows metadata file location
+tk.Label(root, textvariable=metadatalocvar, relief=GROOVE).grid(column=0, row=secstarts['md'] + 1, columnspan=3)
 
 jsondata, possiblexy = dict(), list()
 def OpenFile():
@@ -58,7 +60,7 @@ def OpenFile():
         title = "Choose a file"
         )
 
-    textarea.insert(END, 'Metadata file: ' + name + '\n')
+    textarea.insert(END, f'Metadata file: {Path(name)}\n')
 
     global jsondata, possiblexy
     try:
@@ -73,7 +75,7 @@ def OpenFile():
             textarea.insert(END, f'Data dir: {jsondata["data_location"]}\n')
             textarea.insert(END, f'Images dir: {jsondata["images_location"]}\n')
             textarea.insert(END, '* Choose XY axis\n')
-            metadatalocvar.set(name)
+            metadatalocvar.set(str(Path(name)))
             imageslocvar.set(jsondata['images_location'])
     except Exception as e:
         print("No file exists")
@@ -83,7 +85,7 @@ def OpenFile():
         # xyokbutton.config(state="disabled")
         return
     finally:
-        textarea.see("end")
+        textarea.see(END)
 
     il = Path(jsondata['images_location'])
     if not il.exists() or not il.is_dir():
@@ -96,7 +98,7 @@ def OpenFile():
         if not imagescount == len(jsondata['data']) * len(jsondata['plot_types']) + 2:
             textarea.insert(END, 'Some images may be missing\n')
             textarea.insert(END, 'Choosing images directory may be necessary\n')
-    textarea.see("end")
+    textarea.see(END)
 
     xyokbutton.config(state="normal")
 
@@ -108,60 +110,49 @@ def OpenFile():
         yvar.set(possiblexy[1])
     except IndexError:
         yvar.set(possiblexy[0])
-    xchooser['menu'].delete(0, 'end')
-    ychooser['menu'].delete(0, 'end')
+    xchooser['menu'].delete(0, END)
+    ychooser['menu'].delete(0, END)
 
     for choice in possiblexy:
         xchooser['menu'].add_command(label=choice, command=tk._setit(xvar, choice))
         ychooser['menu'].add_command(label=choice, command=tk._setit(yvar, choice))
 
-metadatabutton = ttk.Button(root, text='Choose', command=OpenFile)
-metadatabutton.grid(column=2, row=secstarts['md'])
-
-imloclabel = tk.Label(root, text='Images location (choose any file inside):')
-imloclabel.grid(column=0, columnspan=2, row=secstarts['md'] + 2)
+ttk.Button(root, text='Choose', command=OpenFile).grid(column=2, row=secstarts['md'])
+tk.Label(root, text='Images location:').grid(column=0, columnspan=2, row=secstarts['md'] + 2)
 
 def FindImagesFolder():
-    name = askopenfilename(initialdir=os.getcwd(),
-        title = "Choose images directory",
-        # mustexist = True
-        )
+    name = diropenbox(title = "Choose images directory", default=os.getcwd())
+    if name is None:
+        return
+    if 'images_location' not in jsondata.keys():
+        textarea.insert(END, 'Please open metadata file first\n')
+        textarea.see(END)
+        return
 
-    name = str(Path(name).resolve().parent)
+    name = Path(name).resolve()
+    textarea.insert(END, f'{name}\n')
 
     jsondata['images_location'] = name
-    imageslocvar.set(name)
+    imageslocvar.set(str(name))
 
-    il = Path(jsondata['images_location'])
-    if not il.exists() or not il.is_dir():
-        textarea.insert(END, 'Images location doesn\'t exist\n')
+    imagescount = len(list(name.glob(f'*.{P.plot_format}')))
+    textarea.insert(END, f'{imagescount} images found inside\n')
+    if not imagescount == len(jsondata['data']) * len(jsondata['plot_types']) + 2:
+        textarea.insert(END, 'Some images may be missing\n')
         textarea.insert(END, 'Choosing images directory may be necessary\n')
-    else:
-        textarea.insert(END, 'Images location directory exists\n')
-        imagescount = len(list(il.glob(f'*.{P.plot_format}')))
-        textarea.insert(END, f'{imagescount} images found inside\n')
-        if not imagescount == len(jsondata['data']) * len(jsondata['plot_types']) + 2:
-            textarea.insert(END, 'Some images may be missing\n')
-            textarea.insert(END, 'Choosing images directory may be necessary\n')
-    textarea.see("end")
+    textarea.see(END)
 
-imageslocbutton = ttk.Button(root, text='Choose', command=FindImagesFolder)
-imageslocbutton.grid(column=2, row=secstarts['md'] + 2)
+ttk.Button(root, text='Choose', command=FindImagesFolder).grid(column=2, row=secstarts['md'] + 2)
 
 imageslocvar = StringVar()
-imagesloclabel = tk.Label(root, textvariable=imageslocvar, relief=GROOVE)
-imagesloclabel.grid(column=0, columnspan=3, row=secstarts['md'] + 3)
+tk.Label(root, textvariable=imageslocvar, relief=GROOVE).grid(column=0, columnspan=3, row=secstarts['md'] + 3)
 
-sep1 = ttk.Separator(root)
-sep1.grid(column=0, row=secstarts['md'] + 4, columnspan=3, sticky=(E,W))
+ttk.Separator(root).grid(column=0, row=secstarts['md'] + 4, columnspan=3, sticky=(E,W))
 
 # XY section
 
-xvarlabel = tk.Label(root, text='X axis')
-xvarlabel.grid(column=0, row=secstarts['xy'], ipadx=10)
-
-yvarlabel = tk.Label(root, text='Y axis')
-yvarlabel.grid(column=1, row=secstarts['xy'], ipadx=10)
+tk.Label(root, text='X axis').grid(column=0, row=secstarts['xy'], ipadx=10)
+tk.Label(root, text='Y axis').grid(column=1, row=secstarts['xy'], ipadx=10)
 
 xvar = StringVar(root)
 xchooser = ttk.OptionMenu(root, xvar, 'X axis variable', *possiblexy)
@@ -176,13 +167,13 @@ def on_xychosen():
     xaxis, yaxis = xvar.get(), yvar.get()
     if xaxis == yaxis:
         textarea.insert(END, '*** X and Y must be different!\n')
-        textarea.see('end')
+        textarea.see(END)
         fixedvarsokbutton.config(state="disabled")
         for i in range(fixedvars['count']):
             fixedvars['labelvars'][i].set('---')
             fixedvars['numlabelvars'][i].set('---')
             fixedvars['omvars'][i].set('---')
-            fixedvars['optionmenus'][i]['menu'].delete(0, 'end')
+            fixedvars['optionmenus'][i]['menu'].delete(0, END)
         return None
 
     textarea.insert(END, 'X : ' + xaxis + '\n')
@@ -193,7 +184,7 @@ def on_xychosen():
     for o in others:
         others[o] = list(jsondata['tunables'][o].keys())
         textarea.insert(END, f'{o} : {" ".join(others[o])}\n')
-    textarea.see("end")
+    textarea.see(END)
 
     pprint(others)
     fixedvarsokbutton.config(state="normal")
@@ -206,7 +197,7 @@ def on_xychosen():
         fixedvars['numlabelvars'][i].set(f'{str(len(others[o]))} option{"s" if len(others[o]) > 1 else ""}')
 
         fixedvars['omvars'][i].set(others[o][0])
-        fixedvars['optionmenus'][i]['menu'].delete(0, 'end')
+        fixedvars['optionmenus'][i]['menu'].delete(0, END)
 
         fixedvars['optionmenus'][i].config(state='normal')
         if len(others[o]) == 1:
@@ -218,8 +209,7 @@ def on_xychosen():
 xyokbutton = ttk.Button(root, text='Ok', command=on_xychosen, state=DISABLED)
 xyokbutton.grid(column=2, row=secstarts['xy'] + 1)
 
-sep2 = ttk.Separator(root)
-sep2.grid(column=0, row=secstarts['xy'] + 2, columnspan=3, sticky=(E,W))
+ttk.Separator(root).grid(column=0, row=secstarts['xy'] + 2, columnspan=3, sticky=(E,W))
 
 # Fixed vars section
 
@@ -233,17 +223,15 @@ fixedvars = {
 }
 
 for i in range(fixedvars['count']):
-    lv = StringVar(root, str(i))
+    lv = StringVar(root, f'<{i+1}>')
     omv = StringVar(root, '---')
-    nlv = StringVar(root, '0')
+    nlv = StringVar(root, '---')
 
-    l = tk.Label(root, textvariable=lv)
+    tk.Label(root, textvariable=lv).grid(column=0, row=secstarts['fv'] + i + 1)
+    tk.Label(root, textvariable=nlv).grid(column=2, row=secstarts['fv'] + i + 1)
+
     om = ttk.OptionMenu(root, omv, '---', *list())
-    ln = tk.Label(root, textvariable=nlv)
-
-    l.grid(column=0, row=secstarts['fv'] + i + 1)
     om.grid(column=1, row=secstarts['fv'] + i + 1)
-    ln.grid(column=2, row=secstarts['fv'] + i + 1)
 
     fixedvars['keys'].append('')
     fixedvars['labelvars'].append(lv)
@@ -251,8 +239,7 @@ for i in range(fixedvars['count']):
     fixedvars['omvars'].append(omv)
     fixedvars['numlabelvars'].append(nlv)
 
-htmlnamelabel = tk.Label(root, text='', relief=GROOVE)
-htmlnamelabel.grid(column=0, row=secstarts['ds']-2, columnspan=3)
+
 
 def on_fixedvarschosen():
     timehash = md5()
@@ -264,7 +251,7 @@ def on_fixedvarschosen():
 
     filename = f'{xaxis}vs{yaxis}_{fv}{timehash}.html'
     # filename = 'test.html'
-    htmlnamelabel.config(text=filename)
+    htmlnamevar.set(filename)
 
     passed = list()
     hashes = dict()
@@ -306,40 +293,42 @@ def on_fixedvarschosen():
 
     create_report(hashes, jsondata, dataforreport)
     textarea.insert(END, f'Report created: {filename}\n')
-    textarea.see('end')
+    textarea.see(END)
     if openinbrowser.get():
         webbrowser.open(filename)
 
-openinbrowser = BooleanVar(root)
-openinbrowser.set(True)
-openinbrowsercheckbox = tk.Checkbutton(root, text='Open in browser', variable=openinbrowser)
-openinbrowsercheckbox.grid(column=0, columnspan=2, row=secstarts['ds']-3)
+openinbrowser = BooleanVar(root, True)
+tk.Checkbutton(root, text='Open in browser', variable=openinbrowser).grid(column=0, columnspan=2, row=secstarts['ds']-4)
 
 fixedvarsokbutton = ttk.Button(root, text='Ok', command=on_fixedvarschosen, state=DISABLED)
-fixedvarsokbutton.grid(column=2, row=secstarts['ds']-3)
+fixedvarsokbutton.grid(column=2, row=secstarts['ds']-4)
 
-sep3 = ttk.Separator(root)
-sep3.grid(column=0, row=secstarts['ds']-1, columnspan=3, sticky=(E,W))
+htmlnamevar = StringVar(root)
+tk.Label(root, textvariable=htmlnamevar, relief=GROOVE).grid(column=0, row=secstarts['ds']-3, columnspan=3)
+
+ttk.Separator(root, orient='horizontal').grid(column=0, row=secstarts['ds']-2, columnspan=3, sticky=(E,W))
+ttk.Separator(root, orient='horizontal').grid(column=0, row=secstarts['ds']-1, columnspan=3, sticky=(E,W))
 
 # Describer section
 
-describerlabel = tk.Label(root, text='Describer (WIP)', relief=RAISED)
-describerlabel.grid(column=0, row=secstarts['ds'], columnspan=3)
+tk.Label(root, text='Describer (WIP)', relief=RAISED).grid(column=0, row=secstarts['ds'], columnspan=3)
 
-datapathlabel = tk.Label(root, text='Data path')
-datapathlabel.grid(column=0, row=secstarts['ds'] + 1, sticky=(W,))
+tk.Label(root, text='Data path (choose any file inside):').grid(column=0, columnspan=2, row=secstarts['ds'] + 1, sticky=(W,))
+ttk.Button(root, text='Choose').grid(column=2, row=secstarts['ds'] + 1)
+describedatapathvar = StringVar(root)
+tk.Label(root, textvariable=describedatapathvar, relief=GROOVE).grid(column=0, columnspan=3, row=secstarts['ds'] + 2)
 
-imagespathlabel = tk.Label(root, text='Images path')
-imagespathlabel.grid(column=0, row=secstarts['ds'] + 1, sticky=(W,))
+tk.Label(root, text='Images path (choose any file inside):').grid(column=0, columnspan=2, row=secstarts['ds'] + 3, sticky=(W,))
+ttk.Button(root, text='Choose').grid(column=2, row=secstarts['ds'] + 3)
+describeimagespathvar = StringVar(root)
+tk.Label(root, textvariable=describeimagespathvar, relief=GROOVE).grid(column=0, columnspan=3, row=secstarts['ds'] + 4)
 
 plotvar = BooleanVar()
-plotcheckbox = tk.Checkbutton(root, text='plot', variable=plotvar)
-plotcheckbox.grid(column=0, row=secstarts['ds'] + 2)
+tk.Checkbutton(root, text='plot', variable=plotvar).grid(column=0, row=secstarts['ds'] + 5)
 
-describebutton = ttk.Button(root, text='Describe')
-describebutton.grid(column=1, row=secstarts['ds'] + 2)
+ttk.Button(root, text='Describe').grid(column=2, row=secstarts['ds'] + 5)
 
 describeprogressbar = ttk.Progressbar(root)
-describeprogressbar.grid(column=0, columnspan=3, row=secstarts['ds'] + 3, sticky=(E,W))
+describeprogressbar.grid(column=0, columnspan=3, row=secstarts['ds'] + 6, sticky=(E,W))
 
 root.mainloop()
