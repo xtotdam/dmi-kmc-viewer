@@ -52,6 +52,12 @@ def create_report(hashes:dict, jsondata:dict, dataforreport:dict):
     # imgpath = Path('E:\\Cloud Mail.Ru\\Данные расчетов\\dmi-kmc\\14-12-18\\images').as_uri()
     imagename_template = Template(f'{imgpath}/${{hash}}_${{type}}.{P.plot_format}')
 
+    for i in range(len(condition[xaxis])):
+        for j in range(len(condition[yaxis])):
+            if (i, j) not in hashes.keys():
+                hashes[(i, j)] = list()
+                print(f'No ({i}, {j}) key in hashes dict')
+
     table = list()
 
     table.append('<tr>')
