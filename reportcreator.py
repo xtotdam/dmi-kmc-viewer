@@ -6,6 +6,15 @@ from string import Template
 from parameters import Parameters as P
 from imagetemplates import image_templates
 
+shorts = {
+    "energy": 'e',
+    "steps": 's',
+    "phi": '&varphi;',
+    "theta": '&theta;',
+    "phi3x3": '&varphi;3',
+    "theta3x3": '&theta;3'
+}
+
 
 def create_report(hashes:dict, jsondata:dict, dataforreport:dict):
     xaxis, yaxis = dataforreport['xaxis'], dataforreport['yaxis']
@@ -60,6 +69,8 @@ def create_report(hashes:dict, jsondata:dict, dataforreport:dict):
 
             for h in hashes[(i, j)]:
                 table.append(image_templates[P.template_type].substitute(imgpath=imgpath, hash=h))
+                # table.append('<br/>')
+                table.append(' '.join(f'<a href="{imgpath}/{h}_{k}.{P.plot_format}" target="_blank">{shorts[k]}</a>' for k in jsondata['plot_types']))
 
             table.append('</td>\n')
         table.append('</tr>\n')

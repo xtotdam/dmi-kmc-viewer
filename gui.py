@@ -1,9 +1,9 @@
 from tkinter import *
 from tkinter import ttk
-from tkinter import tix
 import tkinter as tk
 from tkinter.filedialog import askopenfilename, askdirectory
 import tkinter.scrolledtext as tkst
+
 import json
 import os
 from pprint import pprint, pformat
@@ -64,8 +64,12 @@ def OpenFile():
     try:
         with open(name,'r') as UseFile:
             jsondata = json.load(UseFile)
+
+            jsondata["data_location"] = Path(jsondata["data_location"]).resolve()
+            jsondata["images_location"] = Path(jsondata["images_location"]).resolve()
+
             textarea.insert(END, 'Metadata loaded\n')
-            textarea.insert(END, f'{len(jsondata["data"])} files described\n')
+            textarea.insert(END, f'{len(jsondata["data"])} files described inside\n')
             textarea.insert(END, f'Data dir: {jsondata["data_location"]}\n')
             textarea.insert(END, f'Images dir: {jsondata["images_location"]}\n')
             textarea.insert(END, '* Choose XY axis\n')
@@ -86,7 +90,7 @@ def OpenFile():
         textarea.insert(END, 'Images location doesn\'t exist\n')
         textarea.insert(END, 'Choosing images directory may be necessary\n')
     else:
-        textarea.insert(END, 'Images location seems OK\n')
+        textarea.insert(END, 'Images location directory exists\n')
         imagescount = len(list(il.glob(f'*.{P.plot_format}')))
         textarea.insert(END, f'{imagescount} images found inside\n')
         if not imagescount == len(jsondata['data']) * len(jsondata['plot_types']) + 2:
@@ -133,7 +137,7 @@ def FindImagesFolder():
         textarea.insert(END, 'Images location doesn\'t exist\n')
         textarea.insert(END, 'Choosing images directory may be necessary\n')
     else:
-        textarea.insert(END, 'Images location seems OK\n')
+        textarea.insert(END, 'Images location directory exists\n')
         imagescount = len(list(il.glob(f'*.{P.plot_format}')))
         textarea.insert(END, f'{imagescount} images found inside\n')
         if not imagescount == len(jsondata['data']) * len(jsondata['plot_types']) + 2:
@@ -334,5 +338,8 @@ plotcheckbox.grid(column=0, row=secstarts['ds'] + 2)
 
 describebutton = ttk.Button(root, text='Describe')
 describebutton.grid(column=1, row=secstarts['ds'] + 2)
+
+describeprogressbar = ttk.Progressbar(root)
+describeprogressbar.grid(column=0, columnspan=3, row=secstarts['ds'] + 3, sticky=(E,W))
 
 root.mainloop()
