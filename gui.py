@@ -14,11 +14,9 @@ import time
 import webbrowser
 from pathlib import Path
 import traceback
-from functools import partial
 
 from parameters import Parameters as P
 from reportcreator import create_report
-from describer import create_metadata
 
 parameterscount = 13
 secnames = [
@@ -27,7 +25,7 @@ secnames = [
     'fv', # fixed variables
     'ds'  # describer
     ]
-seclengths = [5, 3, parameterscount-2+6, 7]
+seclengths = [5, 3, parameterscount-2+4, 0]
 cumul_sl = [sum(seclengths[:i]) for i in range(len(seclengths))]
 secstarts = {secnames[i] : cumul_sl[i] for i in range(len(seclengths))}
 
@@ -44,8 +42,10 @@ class StdoutRedirector(object):
     def flush(self):
         pass
 
+
 def debugprint(s):
     print(s, file=sys.__stdout__)
+
 
 class TextDialog(simpledialog.Dialog):
     # https://stackoverflow.com/questions/35923235/is-there-a-message-box-which-displays-copy-able-text-in-python-2-7
@@ -230,7 +230,7 @@ def on_xychosen():
         print(f'{o} : {" ".join(others[o])}')
     textarea.see(END)
 
-    pprint(others)
+    pprint(others, stream=sys.__stdout__)
     fixedvarsokbutton.config(state="normal")
 
     otherslist = sorted(list(others.keys()))
@@ -349,58 +349,5 @@ fixedvarsokbutton.grid(column=2, row=secstarts['ds']-4)
 
 htmlnamevar = StringVar(root)
 tk.Label(root, textvariable=htmlnamevar, relief=GROOVE).grid(column=0, row=secstarts['ds']-3, columnspan=3)
-
-ttk.Separator(root, orient='horizontal').grid(column=0, row=secstarts['ds']-2, columnspan=3, sticky=(E,W))
-ttk.Separator(root, orient='horizontal').grid(column=0, row=secstarts['ds']-1, columnspan=3, sticky=(E,W))
-
-################################
-# Describer section
-
-tk.Label(root, text='Describer (WIP)', relief=RAISED).grid(column=0, row=secstarts['ds'], columnspan=3)
-
-def set_rel_location(var=None):
-    name = diropenbox(default=os.getcwd())
-    if name is None:
-        return
-    name = Path(name).resolve()
-    try:
-        name = name.relative_to(Path.cwd())
-    except ValueError:
-        pass
-    var.set(name)
-
-describedatapathvar = StringVar(root, 'data')
-describeimagespathvar = StringVar(root, 'images')
-
-set_datalocation = partial(set_rel_location, var=describedatapathvar)
-set_imageslocation = partial(set_rel_location, var=describeimagespathvar)
-
-tk.Label(root, text='Data path:').grid(column=0, columnspan=2, row=secstarts['ds'] + 1, sticky=(W,))
-ttk.Button(root, text='Choose', command=set_datalocation).grid(column=2, row=secstarts['ds'] + 1)
-
-tk.Label(root, textvariable=describedatapathvar, relief=GROOVE).grid(column=0, columnspan=3, row=secstarts['ds'] + 2)
-
-tk.Label(root, text='Images path:').grid(column=0, columnspan=2, row=secstarts['ds'] + 3, sticky=(W,))
-ttk.Button(root, text='Choose', command=set_imageslocation).grid(column=2, row=secstarts['ds'] + 3)
-
-tk.Label(root, textvariable=describeimagespathvar, relief=GROOVE).grid(column=0, columnspan=3, row=secstarts['ds'] + 4)
-
-plotvar = BooleanVar()
-tk.Checkbutton(root, text='plot', variable=plotvar).grid(column=0, row=secstarts['ds'] + 5)
-
-def do_describe():
-    # progressvar.set(progressvar.get() + 10)
-    if describedatapathvar.get()=='' or describeimagespathvar.get()=='':
-        print('Both data and images\' locations must be specified!')
-        return
-    create_metadata(describedatapathvar.get(), describeimagespathvar.get(), do_plot=plotvar.get(), pbardict=pbardict)
-
-ttk.Button(root, text='Describe', command=do_describe).grid(column=2, row=secstarts['ds'] + 5)
-
-progressvar = IntVar()
-progressmax = IntVar()
-describeprogressbar = ttk.Progressbar(root, variable=progressvar, maximum=progressmax.get(), mode="determinate")
-describeprogressbar.grid(column=0, columnspan=3, row=secstarts['ds'] + 6, sticky=(E,W))
-pbardict = {'var': progressvar, 'max': progressmax}
 
 root.mainloop()

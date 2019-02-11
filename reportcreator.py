@@ -48,7 +48,7 @@ def create_report(hashes:dict, jsondata:dict, dataforreport:dict):
         for j in range(len(condition[yaxis])):
             if (i, j) not in hashes.keys():
                 hashes[(i, j)] = list()
-                print(f'No ({i}, {j}) key in hashes dict')
+                print(f'({i}, {j}) key is not in hashes dict')
 
     table = list()
 

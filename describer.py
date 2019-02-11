@@ -87,7 +87,7 @@ def describe(histfile):
     return metadata
 
 
-def create_metadata(data_loc:Path, images_loc:Path, metadatafilename='metadata.json', do_plot=False, pbardict=None):
+def create_metadata(data_loc:Path, images_loc:Path, metadatafilename='metadata.json', do_plot=False):
     jsondata = dict()
     jsondata['data_location'] = Path(data_loc)
     jsondata['images_location'] = Path(images_loc)
@@ -99,17 +99,7 @@ def create_metadata(data_loc:Path, images_loc:Path, metadatafilename='metadata.j
     possible_values = dict()
     metadata_list = list()
 
-    if pbardict is None:
-        iterable = tqdm(list(jsondata['data_location'].glob('history*.txt')), ascii=True)
-    else:
-        iterable = list(jsondata['data_location'].glob('history*.txt'))
-
-        print(f'{len(list(iterable))} files to describe')
-
-        pbardict['var'].set(0)
-        pbardict['max'].set(len(list(iterable)))
-
-    for histfile in iterable:
+    for histfile in tqdm(list(jsondata['data_location'].glob('history*.txt')), ascii=True):
         metadata = dict()
         try:
             metadata = describe(histfile)
@@ -141,8 +131,6 @@ def create_metadata(data_loc:Path, images_loc:Path, metadatafilename='metadata.j
         metadata_list.append(metadata)
         # pprint(metadata)
 
-        if pbardict is not None:
-            pbardict['var'].set(pbardict['var'].get() + 1)
 
     print('All files were described')
 
