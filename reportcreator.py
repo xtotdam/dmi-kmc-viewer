@@ -35,12 +35,12 @@ def create_report(hashes:dict, jsondata:dict, dataforreport:dict):
     <table>
         <tr>
             <td class="axis_desc"><b>X</b></td>
-            <th>{xaxis}</th>
+            <td class="header">{xaxis}</td>
             <td>{'</td><td>'.join(map(str, condition[xaxis]))}</td>
         </tr>
         <tr>
             <td class="axis_desc"><b>Y</b></td>
-            <th>{yaxis}</th>
+            <td class="header">{yaxis}</td>
             <td>{'</td><td>'.join(map(str, condition[yaxis]))}</td>
         </tr>
     </table>
@@ -48,7 +48,7 @@ def create_report(hashes:dict, jsondata:dict, dataforreport:dict):
     Fixed parameters:
     <table>
         <tr>
-            {''.join('<th>{}</th>'.format(x) for x in others)}
+            {''.join('<td class="header">{}</td>'.format(x) for x in others)}
         </tr>
         <tr>
             {''.join('<td>{}</td>'.format(others[x]) for x in others)}
@@ -67,14 +67,14 @@ def create_report(hashes:dict, jsondata:dict, dataforreport:dict):
     table = list()
 
     table.append('<tr>')
-    table.append('<th></th>')
+    table.append('<td class="header"></td>')
     for i in range(len(condition[xaxis])):
-        table.append(f'<th>{condition[xaxis][i]}</th>')
+        table.append(f'<td class="header">{condition[xaxis][i]}</td>')
     table.append('</tr>')
 
     for j in range(len(condition[yaxis])):
         table.append('<tr>')
-        table.append(f'<th><a name="{yaxis+str(condition[yaxis][j])}">{condition[yaxis][j]}</a></th>\n')
+        table.append(f'<td class="header"><a id="{yaxis+str(condition[yaxis][j])}">{condition[yaxis][j]}</a></td>\n')
 
         for i in range(len(condition[xaxis])):
             table.append('<td>\n')
@@ -88,14 +88,21 @@ def create_report(hashes:dict, jsondata:dict, dataforreport:dict):
         table.append('</tr>\n')
 
 
+    # Map of numbers
     ton = [
-        f'<tr><td colspan="2" rowspan="2"></td><th colspan="{len(condition[xaxis])}">{xaxis}</th></tr>',
-        '<tr>']
+        f'''\
+<tr>
+    <td colspan="2" rowspan="2"></td>
+    <td class="axis_desc" colspan="{len(condition[xaxis])}">{xaxis}</td>
+</tr>
+<tr>'''
+]
+
     for i in range(len(condition[xaxis])):
-        ton.append(f'<th>{condition[xaxis][i]}</th>')
-    ton.append(f'</tr><th rowspan="{len(condition[yaxis]) + 1}">{yaxis}</th>')
+        ton.append(f'<td class="header">{condition[xaxis][i]}</td>')
+    ton.append(f'</tr><tr><td class="axis_desc" rowspan="{len(condition[yaxis]) + 1}">{yaxis}</td>')
     for j in range(len(condition[yaxis])):
-        ton.append(f'<tr><th><a href="#{yaxis+str(condition[yaxis][j])}">{condition[yaxis][j]}</a></th>')
+        ton.append(f'<tr><td class="header"><a href="#{yaxis+str(condition[yaxis][j])}">{condition[yaxis][j]}</a></td>')
         for i in range(len(condition[xaxis])):
             ton.append(f'<td>{len(hashes[(i, j)])}</td>')
         ton.append('</tr>\n')
@@ -104,7 +111,7 @@ def create_report(hashes:dict, jsondata:dict, dataforreport:dict):
     possiblevalues = ['<tr>']
     pv = {k:jsondata['tunables'][k] for k in jsondata['tunables'] if len(jsondata['tunables'][k]) > 1}
     for k in pv:
-        possiblevalues.append(f'<th>{k}</th>')
+        possiblevalues.append(f'<td class="header">{k}</td>')
     possiblevalues.append('</tr><tr>')
     for k in pv:
         possiblevalues.append('<td>')
@@ -127,7 +134,7 @@ def create_report(hashes:dict, jsondata:dict, dataforreport:dict):
         with open('dmi-kmc-viewer.css', 'w') as f:
             f.write(open(resource_path('dmi-kmc-viewer.css')).read())
 
-    with open(filename, 'w') as html:
+    with open(filename, 'w', encoding="utf-8") as html:
         html.write(
             Template(open(resource_path('template.html')).read()).safe_substitute(**substitutes)
         )

@@ -3,7 +3,7 @@ from parameters import Parameters as P
 
 generic_pic_template = f'''\
 <a href="${{imgpath}}/${{hash}}_${{type}}.{P.plot_format}">
-<img alt="$hash" src="${{imgpath}}/${{hash}}_${{type}}.{P.plot_format}" width={P.image_width}px />
+<img alt="$hash" src="${{imgpath}}/${{hash}}_${{type}}.{P.plot_format}" width="{P.image_width}" />
 </a>'''
 
 opendiv = '<div class="single_hash">'

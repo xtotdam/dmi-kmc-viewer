@@ -1,9 +1,13 @@
-th {
+td.header {
     background: #ddffdd;
+    text-align: center;
+    font-weight: bolder;
 }
 
 td.axis_desc {
-    background: #FFE6BC
+    background: #FFE6BC;
+    text-align: center;
+    font-weight: bold;
 }
 
 td, th {
