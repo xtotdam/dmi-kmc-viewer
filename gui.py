@@ -15,7 +15,7 @@ import webbrowser
 from pathlib import Path
 import traceback
 
-from _version import __version__
+from _version import __version__, __lastcommitdate__
 from parameters import Parameters as P
 from reportcreator import create_report
 from imagetemplates import image_templates
@@ -72,7 +72,7 @@ def report_callback_exception(*args):
 
 root = Tk()
 root.resizable(False, False)
-root.title(f'dmi-kmc Viewer --- version {__version__}')
+root.title(f'dmi-kmc Viewer --- version {__version__} ({__lastcommitdate__})')
 root.report_callback_exception = report_callback_exception
 
 # c = ttk.Frame(root, padding=(5, 5, 12, 0))

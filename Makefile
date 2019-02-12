@@ -1,9 +1,11 @@
 VERSION=`git describe --tags --always --abbrev=10 --dirty`
+LASTCOMMITDATE=`git log -1 --format=%cd`
 
 .phony: bundle
 
 version:
 	echo "__version__ = '$(VERSION)'" > _version.py
+	echo "__lastcommitdate__ = '$(LASTCOMMITDATE)'" >> _version.py
 
 bundle: version
 	# conda activate for-bundle
