@@ -54,6 +54,11 @@ veryfull_template = Template(
     )
 
 image_templates = {
+    'energy' :
+        Template(generic_singlepic_template.safe_substitute(type='energy')),
+    'steps' :
+        Template(generic_singlepic_template.safe_substitute(type='steps')),
+
     'phi' :
         Template(generic_singlepic_template.safe_substitute(type='phi')),
     'theta' :

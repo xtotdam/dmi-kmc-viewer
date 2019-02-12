@@ -13,6 +13,7 @@ def create_report(hashes:dict, jsondata:dict, dataforreport:dict):
     xaxis, yaxis = dataforreport['xaxis'], dataforreport['yaxis']
     condition = dataforreport['condition']
     filename = dataforreport['filename']
+    template_type = dataforreport['template']
 
     others = {k:condition[k][0] for k in condition if len(condition[k]) == 1}
 
@@ -66,7 +67,7 @@ def create_report(hashes:dict, jsondata:dict, dataforreport:dict):
             table.append('<td>\n')
 
             for h in hashes[(i, j)]:
-                table.append(image_templates[P.template_type].substitute(imgpath=imgpath, hash=h))
+                table.append(image_templates[template_type].substitute(imgpath=imgpath, hash=h))
                 # table.append('<br/>')
                 table.append(' '.join(f'<a href="{imgpath}/{h}_{k}.{P.plot_format}" target="_blank">{shorts[k]}</a>' for k in jsondata['plot_types']))
 

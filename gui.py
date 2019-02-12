@@ -17,6 +17,7 @@ import traceback
 
 from parameters import Parameters as P
 from reportcreator import create_report
+from imagetemplates import image_templates
 
 parameterscount = 13
 secnames = [
@@ -25,7 +26,7 @@ secnames = [
     'fv', # fixed variables
     'ds'  # describer
     ]
-seclengths = [5, 3, parameterscount-2+4, 0]
+seclengths = [5, 3, parameterscount-2+6, 0]
 cumul_sl = [sum(seclengths[:i]) for i in range(len(seclengths))]
 secstarts = {secnames[i] : cumul_sl[i] for i in range(len(seclengths))}
 
@@ -294,7 +295,7 @@ def on_fixedvarschosen():
     others = [x for x in jsondata['tunables'].keys() if x not in (xaxis, yaxis) and len(jsondata['tunables'][x]) > 1]
     fv = ''.join(f'{k}={fixedvars["omvars"][fixedvars["keys"].index(k)].get()}_' for k in others)
 
-    filename = f'{xaxis}vs{yaxis}_{fv}{timehash}.html'
+    filename = f'{xaxis}vs{yaxis}_{fv}{templatevar.get()}_{timehash}.html'
     htmlnamevar.set(filename)
 
     passed = list()
@@ -332,7 +333,8 @@ def on_fixedvarschosen():
         'xaxis': xaxis,
         'yaxis': yaxis,
         'condition': condition,
-        'filename': filename
+        'filename': filename,
+        'template': templatevar.get()
     }
 
     create_report(hashes, jsondata, dataforreport)
@@ -347,7 +349,11 @@ tk.Checkbutton(root, text='Open in browser', variable=openinbrowser).grid(column
 fixedvarsokbutton = ttk.Button(root, text='Ok', command=on_fixedvarschosen, state=DISABLED)
 fixedvarsokbutton.grid(column=2, row=secstarts['ds']-4)
 
+templatevar = StringVar(root, P.template_type)
+templatechooser = ttk.OptionMenu(root, templatevar, P.template_type, *list(image_templates.keys()))
+templatechooser.grid(column=0, row=secstarts['ds']-3)
+
 htmlnamevar = StringVar(root)
-tk.Label(root, textvariable=htmlnamevar, relief=GROOVE).grid(column=0, row=secstarts['ds']-3, columnspan=3)
+tk.Label(root, textvariable=htmlnamevar, relief=GROOVE).grid(column=0, row=secstarts['ds']-2, columnspan=3)
 
 root.mainloop()
