@@ -98,6 +98,7 @@ tk.Label(root, text='metadata.json location:').grid(column=0, row=secstarts['md'
 metadatalocvar = StringVar(root)
 tk.Label(root, textvariable=metadatalocvar, relief=GROOVE).grid(column=0, row=secstarts['md'] + 1, columnspan=3)
 
+
 jsondata, possiblexy = dict(), list()
 def OpenFile():
     # https://gist.github.com/Yagisanatode/0d1baad4e3a871587ab1
@@ -161,8 +162,10 @@ def OpenFile():
         xchooser['menu'].add_command(label=choice, command=tk._setit(xvar, choice))
         ychooser['menu'].add_command(label=choice, command=tk._setit(yvar, choice))
 
+
 ttk.Button(root, text='Choose', command=OpenFile).grid(column=2, row=secstarts['md'])
 tk.Label(root, text='Images location:').grid(column=0, columnspan=2, row=secstarts['md'] + 2)
+
 
 def FindImagesFolder():
     name = diropenbox(title = "Choose images directory", default=os.getcwd())
@@ -184,7 +187,7 @@ def FindImagesFolder():
     if not imagescount == len(jsondata['data']) * len(jsondata['plot_types']) + 2:
         print('Some images may be missing')
         print('Choosing images directory may be necessary')
-    textarea.see(END)
+
 
 ttk.Button(root, text='Choose', command=FindImagesFolder).grid(column=2, row=secstarts['md'] + 2)
 
@@ -349,9 +352,11 @@ tk.Checkbutton(root, text='Open in browser', variable=openinbrowser).grid(column
 fixedvarsokbutton = ttk.Button(root, text='Ok', command=on_fixedvarschosen, state=DISABLED)
 fixedvarsokbutton.grid(column=2, row=secstarts['ds']-4)
 
+tk.Label(root, text='Template:').grid(column=0, row=secstarts['ds']-3)
+
 templatevar = StringVar(root, P.template_type)
 templatechooser = ttk.OptionMenu(root, templatevar, P.template_type, *list(image_templates.keys()))
-templatechooser.grid(column=0, row=secstarts['ds']-3)
+templatechooser.grid(column=1, columnspan=2, row=secstarts['ds']-3)
 
 htmlnamevar = StringVar(root)
 tk.Label(root, textvariable=htmlnamevar, relief=GROOVE).grid(column=0, row=secstarts['ds']-2, columnspan=3)
