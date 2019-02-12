@@ -2,11 +2,24 @@ import json
 from pathlib import Path
 from pprint import pprint
 from string import Template
+import os, sys
 
 from parameters import Parameters as P
 from imagetemplates import image_templates
 
 shorts = P.plot_types_shorts
+
+
+def resource_path(relative_path):
+    # https://stackoverflow.com/questions/7674790/bundling-data-files-with-pyinstaller-onefile
+    """ Get absolute path to resource, works for dev and for PyInstaller """
+    try:
+        # PyInstaller creates a temp folder and stores path in _MEIPASS
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+
+    return os.path.join(base_path, relative_path)
 
 
 def create_report(hashes:dict, jsondata:dict, dataforreport:dict):
@@ -75,10 +88,12 @@ def create_report(hashes:dict, jsondata:dict, dataforreport:dict):
         table.append('</tr>\n')
 
 
-    ton = ['<tr><th></th>']
+    ton = [
+        f'<tr><td colspan="2" rowspan="2"></td><th colspan="{len(condition[xaxis])}">{xaxis}</th></tr>',
+        '<tr>']
     for i in range(len(condition[xaxis])):
         ton.append(f'<th>{condition[xaxis][i]}</th>')
-    ton.append('</tr>')
+    ton.append(f'</tr><th rowspan="{len(condition[yaxis]) + 1}">{yaxis}</th>')
     for j in range(len(condition[yaxis])):
         ton.append(f'<tr><th><a href="#{yaxis+str(condition[yaxis][j])}">{condition[yaxis][j]}</a></th>')
         for i in range(len(condition[xaxis])):
@@ -103,11 +118,16 @@ def create_report(hashes:dict, jsondata:dict, dataforreport:dict):
         'description': description ,
         'table': ''.join(table),
         'tableofnumbers': ''.join(ton),
-        'misc': open('misc.html').read(),
-        'possiblevalues': ''.join(possiblevalues)
+        'misc': open(resource_path('misc.html')).read(),
+        'possiblevalues': ''.join(possiblevalues),
+        'cssresourcepath': Path(resource_path('dmi-kmc-viewer.css')).as_uri()
     }
+
+    if not (Path.cwd() / 'dmi-kmc-viewer.css').exists():
+        with open('dmi-kmc-viewer.css', 'w') as f:
+            f.write(open(resource_path('dmi-kmc-viewer.css')).read())
 
     with open(filename, 'w') as html:
         html.write(
-            Template(open('template.html').read()).safe_substitute(**substitutes)
+            Template(open(resource_path('template.html')).read()).safe_substitute(**substitutes)
         )
