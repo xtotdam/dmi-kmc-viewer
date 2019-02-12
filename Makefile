@@ -14,6 +14,7 @@ bundle: version
 	pyinstaller \
 	--onefile \
 	--noconsole \
+	--clean \
 	--name="dmi-kmc Viewer" \
 	--add-data="dmi-kmc-viewer.css;." \
 	--add-data="misc.html;." \
