@@ -94,7 +94,8 @@ def create_metadata(data_loc:Path, images_loc:Path, metadatafilename='metadata.j
     jsondata['plot_types'] = P.plot_types
     jsondata['plot_format'] = P.plot_format
 
-    jsondata['images_location'].mkdir(exist_ok=True)
+    if do_plot:
+        jsondata['images_location'].mkdir(exist_ok=True)
 
     possible_values = dict()
     metadata_list = list()
@@ -134,16 +135,16 @@ def create_metadata(data_loc:Path, images_loc:Path, metadatafilename='metadata.j
 
     print('All files were described')
 
-    cb = jsondata['images_location'] / P.phi_colorbar_name
-    if not os.path.exists(cb):
-        print('Recreating phi colorbar')
-        create_phi_colorbar(str(cb.resolve()))
+    if do_plot:
+        cb = jsondata['images_location'] / P.phi_colorbar_name
+        if not os.path.exists(cb):
+            print('Recreating phi colorbar')
+            create_phi_colorbar(str(cb.resolve()))
 
-    cb = jsondata['images_location'] / P.theta_colorbar_name
-    if not os.path.exists(cb):
-        print('Recreating theta colorbar')
-        create_theta_colorbar(str(cb.resolve()))
-
+        cb = jsondata['images_location'] / P.theta_colorbar_name
+        if not os.path.exists(cb):
+            print('Recreating theta colorbar')
+            create_theta_colorbar(str(cb.resolve()))
 
     jsondata['data_location']   = str(jsondata['data_location'])
     jsondata['images_location'] = str(jsondata['images_location'])
@@ -161,12 +162,12 @@ if __name__ == '__main__':
     parser.add_argument('-p', '--plot', action='store_true', help='activate plotting')
     args = parser.parse_args()
 
-    if not args.plot:
-        print('Skipping plotting')
-
     data_loc = Path('.')/'data'
     images_loc = Path('.')/'images'
 
-    images_loc.mkdir(exist_ok=True)
+    if not args.plot:
+        print('Skipping plotting')
+    else:
+        images_loc.mkdir(exist_ok=True)
 
     create_metadata(data_loc, images_loc, metadatafilename='metadata.json', do_plot=args.plot)
