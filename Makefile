@@ -11,14 +11,16 @@ bundle: version
 	rm -rf dist
 	rm -rf build
 
-	pyinstaller \
-	--onefile \
-	--noconsole \
-	--clean \
-	--name="dmi-kmc Viewer" \
-	--add-data="dmi-kmc-viewer.css;." \
-	--add-data="misc.html;." \
-	--add-data="template.html;." \
-	gui.py
+	# pyinstaller \
+	# --onefile \
+	# --noconsole \
+	# --clean \
+	# --name="dmikmcviewer" \
+	# --add-data="dmi-kmc-viewer.css;." \
+	# --add-data="misc.html;." \
+	# --add-data="template.html;." \
+	# gui.py
+
+	pyinstaller --clean dmikmcviewer.spec
 
 	# conda activate base

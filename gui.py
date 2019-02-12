@@ -72,7 +72,7 @@ def report_callback_exception(*args):
 
 root = Tk()
 root.resizable(False, False)
-root.title(f'dmi-kmc Viewer --- {__version__}')
+root.title(f'dmi-kmc Viewer --- version {__version__}')
 root.report_callback_exception = report_callback_exception
 
 # c = ttk.Frame(root, padding=(5, 5, 12, 0))
