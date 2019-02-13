@@ -29,3 +29,24 @@ table.grid td {
 table td.invis {
     border: 1px solid white;
 }
+
+table td.tight {
+    padding: 0;
+    margin: 0;
+    border-collapse: collapse
+}
+
+div.pusher {
+    height: 45px;
+}
+
+div.colorbars {
+   position: fixed;
+   left: 0px;
+   bottom: 0px;
+   height: 45px;
+   width: 100%;
+   background: white;
+
+   padding: 1px;
+}

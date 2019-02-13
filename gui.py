@@ -235,7 +235,7 @@ def on_xychosen():
         print(f'{o} : {" ".join(others[o])}')
     textarea.see(END)
 
-    pprint(others, stream=sys.__stdout__)
+    # pprint(others, stream=sys.__stdout__)
     fixedvarsokbutton.config(state="normal")
 
     otherslist = sorted(list(others.keys()))

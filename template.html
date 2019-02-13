@@ -8,22 +8,35 @@
 </head>
 <body>
 
-<h1>DMI-KMC Viewer</h1>
+<div class="wrapper">
+    <h1>DMI-KMC Viewer</h1>
 
-<table>
-    <tr>
-        <td class="invis">$description</td>
-        <td class="invis">Map of numbers<br/><table>$tableofnumbers</table></td>
-        <td class="invis">Possible tunables<br/><table>$possiblevalues</table></td>
-        <td class="invis">$misc</td>
-    </tr>
-</table>
+    <table>
+        <tr>
+            <td class="invis">$description</td>
+            <td class="invis">Map of numbers<br/><table>$tableofnumbers</table></td>
+            <td class="invis">Possible tunables<br/><table>$possiblevalues</table></td>
+            <td class="invis">$misc</td>
+        </tr>
+    </table>
 
+    <br/>
 
-<br/>
-<table class="grid">
-    $table
-</table>
+    <table class="grid">
+        $table
+    </table>
+</div>
+
+<div class="pusher"></div>
+
+<div class="colorbars">
+    <table>
+        <tr>
+            <td class="invis tight"><img src="$phi_colorbar_name"  alt="&varphi; colorbar" width="80%"/></td>
+            <td class="invis tight"><img src="$theta_colorbar_name" alt="&theta; colorbar" width="80%"/></td>
+        </tr>
+    </table>
+</div>
 
 </body>
 </html>

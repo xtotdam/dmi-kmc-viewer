@@ -127,7 +127,9 @@ def create_report(hashes:dict, jsondata:dict, dataforreport:dict):
         'tableofnumbers': ''.join(ton),
         'misc': open(resource_path('misc.html')).read(),
         'possiblevalues': ''.join(possiblevalues),
-        'cssresourcepath': Path(resource_path('dmi-kmc-viewer.css')).as_uri()
+        'cssresourcepath': Path(resource_path('dmi-kmc-viewer.css')).as_uri(),
+        'phi_colorbar_name': (Path(jsondata['images_location']) / P.phi_colorbar_name).as_uri(),
+        'theta_colorbar_name': (Path(jsondata['images_location']) / P.theta_colorbar_name).as_uri()
     }
 
     if not (Path.cwd() / 'dmi-kmc-viewer.css').exists():
