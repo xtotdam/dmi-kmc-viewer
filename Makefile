@@ -7,12 +7,7 @@ version:
 	echo "__version__ = '$(VERSION)'" > _version.py
 	echo "__lastcommitdate__ = '$(LASTCOMMITDATE)'" >> _version.py
 
-bundle: version
-	# conda activate for-bundle
-
-	rm -rf dist
-	rm -rf build
-
+bundle-viewer: version
 	# pyinstaller \
 	# --onefile \
 	# --noconsole \
@@ -25,4 +20,13 @@ bundle: version
 
 	pyinstaller --clean dmikmcviewer.spec
 
-	# conda activate base
+# Doesn't work
+bundle-describer: version
+	# pyinstaller \
+	# --onefile \
+	# --console \
+	# --clean \
+	# --name="dmikmcdescriber" \
+	# describer.py
+
+	pyinstaller --clean dmikmcdescriber.spec
