@@ -12,7 +12,7 @@ from tqdm import tqdm
 
 from plotter import *
 from parameters import Parameters as P
-from _version import __version__, __lastcommitdate__
+# from _version import __version__, __lastcommitdate__
 
 
 def name_hash(metadata:dict) -> str:
@@ -187,7 +187,8 @@ if __name__ == '__main__':
     images_loc = get_rel_location('Choose images folder')
 
     answer = indexbox(
-        title=f'Describer --- version {__version__} ({__lastcommitdate__})',
+        title=f'Describer',
+        # title=f'Describer --- version {__version__} ({__lastcommitdate__})',
         msg=f'Data location: {data_loc}\nImages location: {images_loc}\n\nContinue?',
         choices=['Plot images', 'Don\'t plot images', 'Abort'],
         default_choice='Don\'t plot images',

@@ -116,10 +116,10 @@ def plot_firstmoves(jsondata:dict, metadata:dict, filename:str):
     ax.add_collection(collection_spins)
 
     for k in dcoords:
-        x, y = tri2cart(k)
+        xa, ya = tri2cart(k)
         s = ', '.join(map(str, [x + 1 for x in dcoords[k]]))
-        ax.scatter(x, y, color='k')
-        ax.annotate(s, (x, y), (x, y+0.5), ha='center')
+        ax.scatter(xa, ya, color='k')
+        ax.annotate(s, (xa, ya), (xa, ya + 0.5), ha='center')
 
     xmin, xmax, ymin, ymax = x.min(), x.max(), y.min(), y.max()
     dx, dy = xmax - xmin, ymax - ymin
