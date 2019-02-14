@@ -4,11 +4,15 @@ from pprint import pprint
 import json
 import os.path
 from hashlib import sha224
-from tqdm import tqdm
 import argparse
+import sys
+
+from easygui import diropenbox, indexbox
+from tqdm import tqdm
 
 from plotter import *
 from parameters import Parameters as P
+from _version import __version__, __lastcommitdate__
 
 
 def name_hash(metadata:dict) -> str:
@@ -157,17 +161,55 @@ def create_metadata(data_loc:Path, images_loc:Path, metadatafilename='metadata.j
     print('metadata.json was written to disc')
 
 
+def get_rel_location(wtitle):
+    name = diropenbox(default=os.getcwd(), title=wtitle)
+    if name is None:
+        sys.exit()
+
+    name = Path(name).resolve()
+    try:
+        name = name.relative_to(Path.cwd())
+    except ValueError:
+        pass
+
+    return name
+
+
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='Describe dmi-kmc calculations results and optionally plot them')
-    parser.add_argument('-p', '--plot', action='store_true', help='activate plotting')
-    args = parser.parse_args()
+    # parser = argparse.ArgumentParser(description='Describe dmi-kmc calculations results and optionally plot them')
+    # parser.add_argument('-p', '--plot', action='store_true', help='activate plotting')
+    # args = parser.parse_args()
 
-    data_loc = Path('.')/'data'
-    images_loc = Path('.')/'images'
+    # data_loc = Path('.')/'data'
+    # images_loc = Path('.')/'images'
 
-    if not args.plot:
+    data_loc = get_rel_location('Choose data folder')
+    images_loc = get_rel_location('Choose images folder')
+
+    answer = indexbox(
+        title=f'Describer --- version {__version__} ({__lastcommitdate__})',
+        msg=f'Data location: {data_loc}\nImages location: {images_loc}\n\nContinue?',
+        choices=['Plot images', 'Don\'t plot images', 'Abort'],
+        default_choice='Don\'t plot images',
+        cancel_choice='Abort'
+        )
+
+    do_plot = False
+
+    if answer == 0:
+        do_plot = True
+    elif answer == 1:
+        do_plot = False
+    elif answer == 2:
+        sys.exit()
+    else:
+        print('Unidentified reply from indexbox:', answer)
+
+    if not do_plot:
         print('Skipping plotting')
     else:
         images_loc.mkdir(exist_ok=True)
 
-    create_metadata(data_loc, images_loc, metadatafilename='metadata.json', do_plot=args.plot)
+    create_metadata(data_loc, images_loc, metadatafilename='metadata.json', do_plot=do_plot)
+
+    input('Press any key to exit')

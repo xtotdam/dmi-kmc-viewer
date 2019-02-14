@@ -5,6 +5,7 @@ import matplotlib.colors as mcolors
 import matplotlib.gridspec as gridspec
 from matplotlib.collections import PatchCollection
 from matplotlib import rcParams
+# mpl.use('Agg')
 
 import numpy as np
 from typing import List, Tuple
@@ -18,7 +19,7 @@ for k in P.matplotlib_params:
     rcParams[k] = P.matplotlib_params[k]
 
 
-def extract_history(jsondata:dict, metadata:dict) -> Tuple[np.ndarray, np.ndarray]:
+def extract_history(jsondata:dict, metadata:dict, return_coords=False) -> Tuple[np.ndarray, np.ndarray]:
     historylines = None
     with open(jsondata['data_location'] / metadata['files']['history']) as f:
         historylines = f.readlines()
@@ -28,11 +29,13 @@ def extract_history(jsondata:dict, metadata:dict) -> Tuple[np.ndarray, np.ndarra
     energy_evolution = historylines[offset_top:-offset_btm]
     del historylines
 
-    hist, energies = list(), list()
+    hist, energies, coords = list(), list(), list()
     for line in energy_evolution:
         if line[0] == '+':
             hist.append(1)
             energies.append(float(line.strip().split()[-1]))
+            if return_coords:
+                coords.append(list(map(int, line.strip().split()[-2:])))
         else:
             hist.append(0)
 
@@ -40,7 +43,11 @@ def extract_history(jsondata:dict, metadata:dict) -> Tuple[np.ndarray, np.ndarra
     energies = np.array(energies, dtype=np.float)
     energies = np.cumsum(-energies)
 
-    return hist, energies
+    if return_coords:
+        # coords = np.array(coords, dtype=np.int)
+        return hist, energies, coords
+    else:
+        return hist, energies
 
 
 def check_image_exists(f):
@@ -69,6 +76,61 @@ def plot_energy(jsondata:dict, metadata:dict, filename:str):
     ax.set_xlim(-energies.shape[0] * 0.01, energies.shape[0] * 1.01)
     ax.set_ylim(energies[-1] * 1.02, -energies[-1] * 0.02)
     # ax.set_title(f'At step {metadata["metadata"]["framefreq"] * ...}')
+
+    ext = P.plot_format
+    fig.savefig(jsondata['images_location'] / '.'.join((filename, ext)), format=ext, bbox_inches='tight')
+    # metadata adding is possible
+    plt.close()
+
+
+def tri2cart(ij:Tuple[int,int]) -> Tuple[float,float]:
+    i, j = ij
+    x = i + 0.5 * (j % 2)
+    y = 0.866 * j
+    return (x, y);
+
+
+@check_image_exists
+def plot_firstmoves(jsondata:dict, metadata:dict, filename:str):
+    _, _, coords = extract_history(jsondata, metadata, return_coords=True)
+    coords = coords[:P.firstmoves_count]
+    dcoords = dict()
+    for i,v in enumerate(coords):
+        if tuple(v) in dcoords.keys():
+            dcoords[tuple(v)].append(i)
+        else:
+            dcoords[tuple(v)] = [i, ]
+
+    fig = plt.figure(figsize=(8, 8))
+    ax = fig.gca()
+
+    x,y,z,u,v,w = np.loadtxt(jsondata['data_location'] / metadata['files']['hexgrid'], skiprows=1, delimiter=',').T
+    colorsuv = np.arctan2(u, v) # phi = [-pi, pi]
+    colorsuv = (colorsuv + np.pi) / (2 * np.pi) # [0, 1]
+
+    patches = list()
+    for i in range(x.shape[0]):
+        patches.append(mpatches.RegularPolygon((x[i], y[i]), 6, 0.58))
+
+    collection_spins = PatchCollection(patches, facecolors=plt.get_cmap(P.phi_colormap)(colorsuv), alpha=0.3)
+    ax.add_collection(collection_spins)
+
+    for k in dcoords:
+        x, y = tri2cart(k)
+        s = ', '.join(map(str, [x + 1 for x in dcoords[k]]))
+        ax.scatter(x, y, color='k')
+        ax.annotate(s, (x, y), (x, y+0.5), ha='center')
+
+    xmin, xmax, ymin, ymax = x.min(), x.max(), y.min(), y.max()
+    dx, dy = xmax - xmin, ymax - ymin
+
+    ax.set_xlim(xmin - dx/25, xmax + dx/25)
+    ax.set_ylim(ymin - dy/25, ymax + dy/25)
+    # ax.set_title('Spin direction', ha='right', fontsize=20)
+
+    ax.set_aspect('equal')
+    ax.set_ylabel('Y', rotation=0, ha='right', fontsize=20)
+    ax.set_xlabel('X', fontsize=20)
 
     ext = P.plot_format
     fig.savefig(jsondata['images_location'] / '.'.join((filename, ext)), format=ext, bbox_inches='tight')
