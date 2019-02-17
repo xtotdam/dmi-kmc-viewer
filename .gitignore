@@ -16,3 +16,5 @@ _version.py
 *_test.py
 
 /dmi-kmc Viewer.spec
+
+/V001+V002 release/*

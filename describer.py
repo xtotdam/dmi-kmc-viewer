@@ -189,7 +189,7 @@ if __name__ == '__main__':
     answer = indexbox(
         title=f'Describer',
         # title=f'Describer --- version {__version__} ({__lastcommitdate__})',
-        msg=f'Data location: {data_loc}\nImages location: {images_loc}\n\nContinue?',
+        msg=f'V001 + V002 only!\n\nData location: {data_loc}\nImages location: {images_loc}\n\nContinue?',
         choices=['Plot images', 'Don\'t plot images', 'Abort'],
         default_choice='Don\'t plot images',
         cancel_choice='Abort'
