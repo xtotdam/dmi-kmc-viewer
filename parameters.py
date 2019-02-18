@@ -6,6 +6,7 @@ class _Parameters:
     ### Describer parameters
     # (x, y) means that in history file tagged data is in first x and last y lines
     # all other is actual history
+    # NB! Deprecated
     offsets = {
         'V001': (11, 1),
         'V002': (12, 1),
@@ -23,6 +24,9 @@ class _Parameters:
         'firstmoves': 'fm'
     }
     plot_types = list(plot_types_shorts.keys())
+
+    # these will be plotted for the first frame only and then copied for every frame
+    plot_types_copyable = ['energy', 'steps', 'firstmoves']
 
     firstmoves_count = 30
 

@@ -8,9 +8,11 @@ from matplotlib import rcParams
 # mpl.use('Agg')
 
 import numpy as np
-from typing import List, Tuple
+from typing import List, Tuple, Union
 import functools
 import os.path
+import json
+from pathlib import Path
 
 from parameters import Parameters as P
 
@@ -19,23 +21,18 @@ for k in P.matplotlib_params:
     rcParams[k] = P.matplotlib_params[k]
 
 
-def extract_history(jsondata:dict, metadata:dict, return_coords=False) -> Tuple[np.ndarray, np.ndarray]:
+def extract_history(historyfile:Union[str, Path], return_coords=False):
     historylines = None
-    with open(jsondata['data_location'] / metadata['files']['history']) as f:
-        historylines = f.readlines()
-
-    # historylines = open(jsondata['data_location'] / metadata['files']['history']).readlines()
-    offset_top, offset_btm = P.offsets[metadata['metadata']['fileformat']]
-    energy_evolution = historylines[offset_top:-offset_btm]
-    del historylines
+    with open(historyfile) as f:
+        history = json.load(f)
 
     hist, energies, coords = list(), list(), list()
-    for line in energy_evolution:
+    for line in history['DATA']:
         if line[0] == '+':
             hist.append(1)
-            energies.append(float(line.strip().split()[-1]))
+            energies.append(line[1])
             if return_coords:
-                coords.append(list(map(int, line.strip().split()[-2:])))
+                coords.append(line[2:])
         else:
             hist.append(0)
 
@@ -51,19 +48,18 @@ def extract_history(jsondata:dict, metadata:dict, return_coords=False) -> Tuple[
 
 
 def check_image_exists(f):
-    def wrapper(jd:dict, md:dict, fn:str):
-        ext = P.plot_format
-        ffn = '.'.join((fn, ext))
-        if os.path.exists(jd['images_location'] / ffn):
-            print(f'{ffn} already exists')
+    def wrapper(histfn:dict, hexgfn:dict, plotfn:str, **kw):
+        if plotfn.exists():
+            print(f'{plotfn} already exists')
         else:
-            f(jd, md, fn)
+            # print(f'plotting {plotfn}')
+            f(histfn, hexgfn, plotfn, **kw)
     return wrapper
 
 
 @check_image_exists
-def plot_energy(jsondata:dict, metadata:dict, filename:str):
-    _, energies = extract_history(jsondata, metadata)
+def plot_energy(historyfile, hexgridfile, plotfile, **kwargs):
+    _, energies = extract_history(historyfile)
     del _
 
     fig = plt.figure(figsize=(15, 4))
@@ -77,9 +73,7 @@ def plot_energy(jsondata:dict, metadata:dict, filename:str):
     ax.set_ylim(energies[-1] * 1.02, -energies[-1] * 0.02)
     # ax.set_title(f'At step {metadata["metadata"]["framefreq"] * ...}')
 
-    ext = P.plot_format
-    fig.savefig(jsondata['images_location'] / '.'.join((filename, ext)), format=ext, bbox_inches='tight')
-    # metadata adding is possible
+    fig.savefig(plotfile, format=P.plot_format, bbox_inches='tight')
     plt.close()
 
 
@@ -90,9 +84,14 @@ def tri2cart(ij:Tuple[int,int]) -> Tuple[float,float]:
     return (x, y);
 
 
+def extract_xyzuvw(hexgridfile:Union[str, Path]) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    x,y,z,u,v,w = np.loadtxt(hexgridfile, skiprows=1, comments='#', delimiter=',').T
+    return (x,y,z,u,v,w)
+
+
 @check_image_exists
-def plot_firstmoves(jsondata:dict, metadata:dict, filename:str):
-    _, _, coords = extract_history(jsondata, metadata, return_coords=True)
+def plot_firstmoves(historyfile, hexgridfile, plotfile, **kwargs):
+    _, _, coords = extract_history(historyfile, return_coords=True)
     coords = coords[:P.firstmoves_count]
     dcoords = dict()
     for i,v in enumerate(coords):
@@ -104,7 +103,7 @@ def plot_firstmoves(jsondata:dict, metadata:dict, filename:str):
     fig = plt.figure(figsize=(8, 8))
     ax = fig.gca()
 
-    x,y,z,u,v,w = np.loadtxt(jsondata['data_location'] / metadata['files']['hexgrid'], skiprows=1, delimiter=',').T
+    x,y,z,u,v,w = extract_xyzuvw(hexgridfile)
     colorsuv = np.arctan2(u, v) # phi = [-pi, pi]
     colorsuv = (colorsuv + np.pi) / (2 * np.pi) # [0, 1]
 
@@ -132,15 +131,13 @@ def plot_firstmoves(jsondata:dict, metadata:dict, filename:str):
     ax.set_ylabel('Y', rotation=0, ha='right', fontsize=20)
     ax.set_xlabel('X', fontsize=20)
 
-    ext = P.plot_format
-    fig.savefig(jsondata['images_location'] / '.'.join((filename, ext)), format=ext, bbox_inches='tight')
-    # metadata adding is possible
+    fig.savefig(plotfile, format=P.plot_format, bbox_inches='tight')
     plt.close()
 
 
 @check_image_exists
-def plot_steps(jsondata:dict, metadata:dict, filename:str):
-    hist, energies = extract_history(jsondata, metadata)
+def plot_steps(historyfile, hexgridfile, plotfile, **kwargs):
+    hist, energies = extract_history(historyfile)
 
     fig = plt.figure(figsize=(15, 4))
     ax = fig.gca()
@@ -161,15 +158,13 @@ def plot_steps(jsondata:dict, metadata:dict, filename:str):
     labels = [int(x) * n for x in labels]
     ax.set_xticklabels(labels)
 
-    ext = P.plot_format
-    fig.savefig(jsondata['images_location'] / '.'.join((filename, ext)), format=ext, bbox_inches='tight')
-    # metadata adding is possible
+    fig.savefig(plotfile, format=P.plot_format, bbox_inches='tight')
     plt.close()
 
 
 @check_image_exists
-def plot_phi(jsondata:dict, metadata:dict, filename:str):
-    x,y,z,u,v,w = np.loadtxt(jsondata['data_location'] / metadata['files']['hexgrid'], skiprows=1, delimiter=',').T
+def plot_phi(historyfile, hexgridfile, plotfile, **kwargs):
+    x,y,z,u,v,w = extract_xyzuvw(hexgridfile)
     colorsuv = np.arctan2(u, v) # phi = [-pi, pi]
     colorsuv = (colorsuv + np.pi) / (2 * np.pi) # [0, 1]
 
@@ -194,15 +189,13 @@ def plot_phi(jsondata:dict, metadata:dict, filename:str):
     ax.set_ylabel('Y', rotation=0, ha='right', fontsize=20)
     ax.set_xlabel('X', fontsize=20)
 
-    ext = P.plot_format
-    fig.savefig(jsondata['images_location'] / '.'.join((filename, ext)), format=ext, bbox_inches='tight')
-    # metadata adding is possible
+    fig.savefig(plotfile, format=P.plot_format, bbox_inches='tight')
     plt.close()
 
 
 @check_image_exists
-def plot_theta(jsondata:dict, metadata:dict, filename:str):
-    x,y,z,u,v,w = np.loadtxt(jsondata['data_location'] / metadata['files']['hexgrid'], skiprows=1, delimiter=',').T
+def plot_theta(historyfile, hexgridfile, plotfile, **kwargs):
+    x,y,z,u,v,w = extract_xyzuvw(hexgridfile)
     colors = np.arccos(w / np.sqrt(u**2 + v**2 + w**2)) # theta = [0, pi]
     colors /= np.pi # [0, 1]
 
@@ -227,22 +220,20 @@ def plot_theta(jsondata:dict, metadata:dict, filename:str):
     ax.set_ylabel('Y', rotation=0, ha='right', fontsize=20)
     ax.set_xlabel('X', fontsize=20)
 
-    ext = P.plot_format
-    fig.savefig(jsondata['images_location'] / '.'.join((filename, ext)), format=ext, bbox_inches='tight')
-    # metadata adding is possible
+    fig.savefig(plotfile, format=P.plot_format, bbox_inches='tight')
     plt.close()
 
 
 @check_image_exists
-def plot_phi3x3(jsondata:dict, metadata:dict, filename:str):
-    x,y,z,u,v,w = np.loadtxt(jsondata['data_location'] / metadata['files']['hexgrid'], skiprows=1, delimiter=',').T
+def plot_phi3x3(historyfile, hexgridfile, plotfile, **kwargs):
+    x,y,z,u,v,w = extract_xyzuvw(hexgridfile)
     colorsuv = np.arctan2(u, v) # phi = [-pi, pi]
     colorsuv = (colorsuv + np.pi) / (2 * np.pi) # [0, 1]
 
     fig = plt.figure(figsize=(8, 8))
     ax = fig.gca()
 
-    Nx, Ny = metadata['cell']
+    Nx, Ny = kwargs['cell']
     patches = list()
     for dx in (-Nx, 0, Nx):
         for dy in (-Ny * 0.866, 0, Ny * 0.866):
@@ -268,22 +259,20 @@ def plot_phi3x3(jsondata:dict, metadata:dict, filename:str):
     ax.set_ylabel('Y', rotation=0, ha='right', fontsize=20)
     ax.set_xlabel('X', fontsize=20)
 
-    ext = P.plot_format
-    fig.savefig(jsondata['images_location'] / '.'.join((filename, ext)), format=ext, bbox_inches='tight')
-    # metadata adding is possible
+    fig.savefig(plotfile, format=P.plot_format, bbox_inches='tight')
     plt.close()
 
 
 @check_image_exists
-def plot_theta3x3(jsondata:dict, metadata:dict, filename:str):
-    x,y,z,u,v,w = np.loadtxt(jsondata['data_location'] / metadata['files']['hexgrid'], skiprows=1, delimiter=',').T
+def plot_theta3x3(historyfile, hexgridfile, plotfile, **kwargs):
+    x,y,z,u,v,w = extract_xyzuvw(hexgridfile)
     colors = np.arccos(w / np.sqrt(u**2 + v**2 + w**2)) # theta = [0, pi]
     colors /= np.pi # [0, 1]
 
     fig = plt.figure(figsize=(8, 8))
     ax = fig.gca()
 
-    Nx, Ny = metadata['cell']
+    Nx, Ny = kwargs['cell']
     patches = list()
     for dx in (-Nx, 0, Nx):
         for dy in (-Ny * 0.866, 0, Ny * 0.866):
@@ -309,9 +298,7 @@ def plot_theta3x3(jsondata:dict, metadata:dict, filename:str):
     ax.set_ylabel('Y', rotation=0, ha='right', fontsize=20)
     ax.set_xlabel('X', fontsize=20)
 
-    ext = P.plot_format
-    fig.savefig(jsondata['images_location'] / '.'.join((filename, ext)), format=ext, bbox_inches='tight')
-    # metadata adding is possible
+    fig.savefig(plotfile, format=P.plot_format, bbox_inches='tight')
     plt.close()
 
 

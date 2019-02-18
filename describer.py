@@ -6,6 +6,7 @@ import os.path
 from hashlib import sha224
 import argparse
 import sys
+import shutil
 
 from easygui import diropenbox, indexbox
 from tqdm import tqdm
@@ -15,72 +16,68 @@ from parameters import Parameters as P
 # from _version import __version__, __lastcommitdate__
 
 
-def name_hash(metadata:dict) -> str:
+def name_hash(s:str) -> str:
     h = sha224()
-    sm = '{seed}{steps}{version}{time}'.format(**metadata['metadata'])
-    sp = ''.join((f'{{{key}}}' for key in metadata['parameters'])).format(**metadata['parameters'])
-    s = sm + sp + '{cell}'.format(**metadata)
     h.update(s.encode('utf-8'))
     return h.hexdigest()
 
 
 def describe(histfile):
-    historylines = open(histfile).readlines()
-    fileformatline = historylines[1].strip()
-    if fileformatline.startswith('FILEFORMAT'):
+    with open(histfile, 'r') as jsonfile:
         try:
-            ff = fileformatline.split()[-1]
-            offset_top, offset_btm = P.offsets[ff]
-        except KeyError:
-            raise KeyError(f'{histfile}: Unknown fileformat: {ff}. Accepted are {list(P.offsets.keys())}')
-    else:
-        raise Exception(f'{histfile}: Fileformat not found on 2nd line: {fileformatline}')
+            history = json.load(jsonfile)
+        except json.JSONDecodeError as e:
+            print(e.msg)
+            raise e
 
-    paramslines = historylines[:offset_top] + historylines[-offset_btm:]
-    del historylines
+    del history['DATA']     # we don't need it now, but it is heavy
 
-    params = dict()
-    for line in paramslines:
-        parts = line.strip().split(' ', 1)
-        params[parts[0]] = parts[1]
+    # frames
+    frames_list = list(range(history['STEPS'] // history['EVERY_STEP']))
+    stepfiles = list()
+    for frame in frames_list:
+        try:
+            l = list(Path(histfile).parent.glob(f'hexgrid2C_*{history["SEED"]}.{frame:05d}.csv'))
+            if len(l) > 1:
+                print(f'{histfile}: Several hexgrids found: {list(map(str, l))}. Using only first!')
 
-    params['FILE'] = str(histfile)
+            stepfiles.append({
+                'step': (frame + 1) * history['EVERY_STEP'],
+                'file': l[0].name,
+                'namehash': name_hash(history['VERSION'] + l[0].name)
+                })
 
-    try:
-        l = list(Path(histfile).parent.glob(f'hexgrid2C_*{params["SEED"]}.*.csv'))
-        if len(l) > 1:
-            print(f'{histfile}: Several hexgrids found: {list(map(str, l))}')
-        params['HEXGRID'] = str(l[0])
-    except IndexError:
-        print(f'{histfile}: Hexgrid not found')
-        params['HEXGRID'] = None
+        except IndexError:
+            print(f'{histfile}: Hexgrid not found')
+            stepfiles.append(None)
+
 
     metadata = {
         'metadata': {
-            'fileformat': params['FILEFORMAT'],
-            'version': params['VERSION'],
+            'fileformat':   history['FILEFORMAT'],
+            'version':      history['VERSION'],
 
-            'seed': int(params['SEED']),
+            'seed':         history['SEED'],
 
-            'framefreq': int(params['EVERY_STEP']),
-            'steps': int(params['STEPS']),
-            'time': str(timedelta(seconds=float(params['TIME'][:-7]))),
+            'framefreq':    history['EVERY_STEP'],
+            'steps':        history['STEPS'],
+            'time':         str(timedelta(seconds=int(round(history['TIME'])))),
         },
 
         'files': {
-            'history': Path(params['FILE']).name,
-            'hexgrid': Path(params['HEXGRID']).name
+            'history':      Path(histfile).name,
+            'frames':       stepfiles,
         },
 
-        'cell': list(map(int, params['CELL'].split())),
+        'cell':             history['CELL'],
 
         'parameters': {
-            'B': float(params['B_BIQDR']),
-            'D': float(params['D_DMI']),
-            'J': list(map(float, params['J_EXC'].split())),
-            'K4': float(params['K4_4SPIN']),
-            'K': float(params['K_MGANIS']),
-            'T': 0.0 if params['FILEFORMAT']=='V001' else float(params['TEMP'])
+            'B':            history['B_BIQDR'],
+            'D':            history['D_DMI'],
+            'J':            history['J_EXC'],
+            'K4':           history['K4_4SPIN'],
+            'K':            history['K_MGANIS'],
+            'T':            history['TEMP']
         },
     }
 
@@ -104,16 +101,13 @@ def create_metadata(data_loc:Path, images_loc:Path, metadatafilename='metadata.j
     possible_values = dict()
     metadata_list = list()
 
-    for histfile in tqdm(list(jsondata['data_location'].glob('history*.txt')), ascii=True):
+    for histfile in tqdm(list(jsondata['data_location'].glob('history*.json')), ascii=True):
         metadata = dict()
         try:
             metadata = describe(histfile)
         except Exception as e:
-            print(e, 'Skipping')
+            print('\n', e, 'Skipping')
             continue
-
-        nhash = name_hash(metadata)
-        metadata['namehash'] = nhash
 
         for key in metadata['parameters']:
             if key in possible_values.keys():
@@ -124,20 +118,45 @@ def create_metadata(data_loc:Path, images_loc:Path, metadatafilename='metadata.j
             else:
                 possible_values[key] = {metadata['parameters'][key] : 1}
 
+        if 'frames' not in possible_values.keys():
+            possible_values['frames'] = dict()
+        for frame in metadata['files']['frames']:
+            s = str(frame['step'])
+            if s in possible_values['frames'].keys():
+                possible_values['frames'][s] += 1
+            else:
+                possible_values['frames'][s] = 1
+
         if do_plot:
             # TODO parallel it
-            for typ in jsondata['plot_types']:
-                plotfunc = eval('plot_' + typ)
-                plotfn = str(nhash + '_' + typ)
+            historyfile = jsondata['data_location'] / metadata['files']['history']
+            plotfn_hash_0 = metadata['files']['frames'][0]['namehash']
 
-                plotfunc(jsondata, metadata, plotfn)
-                # metadata['plots'][typ] = '.'.join((plotfn, plot_format))
+            for i, frame in enumerate(metadata['files']['frames']):
+                hexgridfile = jsondata['data_location'] / frame['file']
+                plotfn_hash = metadata['files']['frames'][i]['namehash']
+
+                for typ in jsondata['plot_types']:
+                    plotfunc = eval('plot_' + typ)
+                    plotfile = jsondata['images_location'] / f'{plotfn_hash}_{typ}.{P.plot_format}'
+
+                    if i == 0:
+                        plotfunc(historyfile, hexgridfile, plotfile, cell=metadata['cell'])
+                    else:
+                        if typ in P.plot_types_copyable:
+                            shutil.copy(
+                                jsondata['images_location'] / f'{plotfn_hash_0}_{typ}.{P.plot_format}',
+                                plotfile
+                                )
+                            print(f'Copying 0 -> {i}: {typ}')
+                        else:
+                            plotfunc(historyfile, hexgridfile, plotfile, cell=metadata['cell'])
 
         metadata_list.append(metadata)
         # pprint(metadata)
 
 
-    print('All files were described')
+    print('\nAll files were described')
 
     if do_plot:
         cb = jsondata['images_location'] / P.phi_colorbar_name
@@ -152,7 +171,8 @@ def create_metadata(data_loc:Path, images_loc:Path, metadatafilename='metadata.j
 
     jsondata['data_location']   = str(jsondata['data_location'])
     jsondata['images_location'] = str(jsondata['images_location'])
-    jsondata['tunables'] = {key: possible_values[key] for key in metadata['parameters']}
+    # jsondata['tunables'] = {key: possible_values[key] for key in metadata['parameters']}
+    jsondata['tunables'] = possible_values
     jsondata['data'] = metadata_list
 
     json.dump(jsondata, open('metadata.json', 'w'), indent=4, sort_keys=True)
@@ -176,35 +196,39 @@ def get_rel_location(wtitle):
 
 
 if __name__ == '__main__':
-    # parser = argparse.ArgumentParser(description='Describe dmi-kmc calculations results and optionally plot them')
-    # parser.add_argument('-p', '--plot', action='store_true', help='activate plotting')
-    # args = parser.parse_args()
+    cli_only = True
 
-    # data_loc = Path('.')/'data'
-    # images_loc = Path('.')/'images'
+    if cli_only:
+        parser = argparse.ArgumentParser(description='Describe dmi-kmc calculations results and optionally plot them')
+        parser.add_argument('-p', '--plot', action='store_true', help='activate plotting')
+        args = parser.parse_args()
+        do_plot = args.plot
 
-    data_loc = get_rel_location('Choose data folder')
-    images_loc = get_rel_location('Choose images folder')
-
-    answer = indexbox(
-        title=f'Describer',
-        # title=f'Describer --- version {__version__} ({__lastcommitdate__})',
-        msg=f'V001 + V002 only!\n\nData location: {data_loc}\nImages location: {images_loc}\n\nContinue?',
-        choices=['Plot images', 'Don\'t plot images', 'Abort'],
-        default_choice='Don\'t plot images',
-        cancel_choice='Abort'
-        )
-
-    do_plot = False
-
-    if answer == 0:
-        do_plot = True
-    elif answer == 1:
-        do_plot = False
-    elif answer == 2:
-        sys.exit()
+        data_loc = Path('.')/'data'
+        images_loc = Path('.')/'images'
     else:
-        print('Unidentified reply from indexbox:', answer)
+        data_loc = get_rel_location('Choose data folder')
+        images_loc = get_rel_location('Choose images folder')
+
+        answer = indexbox(
+            title=f'Describer',
+            # title=f'Describer --- version {__version__} ({__lastcommitdate__})',
+            msg=f'Data location: {data_loc}\nImages location: {images_loc}\n\nContinue?',
+            choices=['Plot images', 'Don\'t plot images', 'Abort'],
+            default_choice='Don\'t plot images',
+            cancel_choice='Abort'
+            )
+
+        do_plot = False
+
+        if answer == 0:
+            do_plot = True
+        elif answer == 1:
+            do_plot = False
+        elif answer == 2:
+            sys.exit()
+        else:
+            print('Unidentified reply from indexbox:', answer)
 
     if not do_plot:
         print('Skipping plotting')
