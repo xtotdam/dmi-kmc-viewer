@@ -55,7 +55,8 @@ def create_report(hashes:dict, jsondata:dict, dataforreport:dict):
         </tr>
     </table>'''
 
-    imgpath = Path(jsondata['images_location']).as_uri()
+    # imgpath = Path(jsondata['images_location']).as_uri()
+    imgpath = Path(jsondata['images_location'])
     imagename_template = Template(f'{imgpath}/${{hash}}_${{type}}.{P.plot_format}')
 
     for i in range(len(condition[xaxis])):
@@ -127,14 +128,14 @@ def create_report(hashes:dict, jsondata:dict, dataforreport:dict):
         'tableofnumbers': ''.join(ton),
         'misc': open(resource_path('misc.html')).read(),
         'possiblevalues': ''.join(possiblevalues),
-        'cssresourcepath': Path(resource_path('dmi-kmc-viewer.css')).as_uri(),
-        'phi_colorbar_name': (Path(jsondata['images_location']) / P.phi_colorbar_name).as_uri(),
-        'theta_colorbar_name': (Path(jsondata['images_location']) / P.theta_colorbar_name).as_uri()
+        'cssresourcepath': Path(resource_path('dmi-kmc-viewer.css')),
+        'phi_colorbar_name': (Path(jsondata['images_location']) / P.phi_colorbar_name),
+        'theta_colorbar_name': (Path(jsondata['images_location']) / P.theta_colorbar_name)
     }
 
-    if not (Path.cwd() / 'dmi-kmc-viewer.css').exists():
-        with open('dmi-kmc-viewer.css', 'w') as f:
-            f.write(open(resource_path('dmi-kmc-viewer.css')).read())
+    # if not (Path.cwd() / 'dmi-kmc-viewer.css').exists():
+    with open('dmi-kmc-viewer.css', 'w') as f:
+        f.write(open(resource_path('dmi-kmc-viewer.css')).read())
 
     with open(filename, 'w', encoding="utf-8") as html:
         html.write(

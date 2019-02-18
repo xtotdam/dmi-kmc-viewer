@@ -118,8 +118,8 @@ def OpenFile():
         with open(name,'r') as UseFile:
             jsondata = json.load(UseFile)
 
-            jsondata["data_location"] = Path(jsondata["data_location"]).resolve()
-            jsondata["images_location"] = Path(jsondata["images_location"]).resolve()
+            # jsondata["data_location"] = Path(jsondata["data_location"]).resolve()
+            # jsondata["images_location"] = Path(jsondata["images_location"]).resolve()
 
             print('Metadata loaded')
             print(f'{len(jsondata["data"])} files described inside')
