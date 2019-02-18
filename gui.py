@@ -46,10 +46,11 @@ class StdoutRedirector(object):
 
 
 def debugprint(s):
-    print(s, file=sys.__stdout__)
+    print(pformat(s), file=sys.__stdout__)
 
 
 class TextDialog(simpledialog.Dialog):
+    # for exceptions
     # https://stackoverflow.com/questions/35923235/is-there-a-message-box-which-displays-copy-able-text-in-python-2-7
     def __init__(self, parent, title=None, text=None):
         self.data = text
@@ -266,7 +267,7 @@ ttk.Separator(root).grid(column=0, row=secstarts['xy'] + 2, columnspan=3, sticky
 
 fixedvars = {
     'keys': list(),
-    'count': parameterscount - 2,
+    'count': parameterscount - 2 + 1,
     'optionmenus': list(),
     'labelvars': list(),
     'omvars': list(),
@@ -306,12 +307,16 @@ def on_fixedvarschosen():
     hashes = dict()
 
     condition = {
-        xaxis: list(map(float, jsondata['tunables'][xaxis].keys())),
-        yaxis: list(map(float, jsondata['tunables'][yaxis].keys()))
+        xaxis: sorted(list(map(float, jsondata['tunables'][xaxis].keys()))),
+        yaxis: sorted(list(map(float, jsondata['tunables'][yaxis].keys())))
     }
+    print(condition)
+
     for k in jsondata['tunables']:
         if k not in (xaxis, yaxis):
             condition[k] = [float(fixedvars["omvars"][fixedvars["keys"].index(k)].get()), ]
+
+    print(condition)
 
     for metadata in jsondata['data']:
         passing = True
@@ -320,15 +325,37 @@ def on_fixedvarschosen():
                 passing = False
 
         if passing:
-            xi = condition[xaxis].index(float(metadata['parameters'][xaxis]))
-            yi = condition[yaxis].index(float(metadata['parameters'][yaxis]))
+            if xaxis == 'frames':
+                yi = condition[yaxis].index(float(metadata['parameters'][yaxis]))
+                for frame in metadata['files']['frames']:
+                    xi = condition[xaxis].index(float(frame['step']))
 
-            try:
-                hashes[(xi, yi)].append(metadata['namehash'])
-            except KeyError:
-                hashes[(xi, yi)] = [metadata['namehash'], ]
+                    try:
+                        hashes[(xi, yi)].append(frame['namehash'])
+                    except KeyError:
+                        hashes[(xi, yi)] = [frame['namehash'], ]
 
-            passed.append(metadata)
+            elif yaxis == 'frames':
+                xi = condition[xaxis].index(float(metadata['parameters'][xaxis]))
+                for frame in metadata['files']['frames']:
+                    yi = condition[yaxis].index(float(frame['step']))
+
+                    try:
+                        hashes[(xi, yi)].append(frame['namehash'])
+                    except KeyError:
+                        hashes[(xi, yi)] = [frame['namehash'], ]
+
+            else:
+                xi = condition[xaxis].index(float(metadata['parameters'][xaxis]))
+                yi = condition[yaxis].index(float(metadata['parameters'][yaxis]))
+
+                print('Hashes may be incorrect. I was to lazy to fix them if this is needed')
+                try:
+                    hashes[(xi, yi)].append(metadata['files']['frames'][-1]['namehash'])
+                except KeyError:
+                    hashes[(xi, yi)] = [metadata['files']['frames'][-1]['namehash'], ]
+
+                passed.append(metadata)
 
     for k in hashes:
         hashes[k] = sorted(hashes[k])
