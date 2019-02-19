@@ -85,7 +85,7 @@ def tri2cart(ij:Tuple[int,int]) -> Tuple[float,float]:
 
 
 def extract_xyzuvw(hexgridfile:Union[str, Path]) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
-    x,y,z,u,v,w = np.loadtxt(hexgridfile, skiprows=1, comments='#', delimiter=',').T
+    x,y,z,u,v,w = np.loadtxt(hexgridfile, skiprows=2, comments='#', delimiter=',').T
     return (x,y,z,u,v,w)
 
 
